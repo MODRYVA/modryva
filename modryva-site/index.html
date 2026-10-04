@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="MODRYVA — custom Minecraft mods made to order." />
+  <title>MODRYVA — Custom Minecraft Mods</title>
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="page-shell">
+    <section class="site-card" aria-label="MODRYVA">
+      <div class="hero">
+        <header class="topbar">
+          <a class="brand" href="index.html" aria-label="MODRYVA home">
+            <img src="assets/logo.png" alt="MODRYVA logo" />
+            <span>MODRYVA</span>
+          </a>
+          <div class="top-actions">
+            <div class="lang-wrap">
+              <button class="lang-button" type="button" aria-label="Change language">
+                <span data-lang-code>РУ</span>
+                <span class="flag" data-lang-flag>🇷🇺</span>
+              </button>
+              <div class="lang-menu" role="menu">
+                <button type="button" data-set-lang="ru">🇷🇺 Русский</button>
+                <button type="button" data-set-lang="en">🇺🇸 English</button>
+              </div>
+            </div>
+            <a class="profile-button" href="profile.html" aria-label="Profile"><span class="profile-icon" aria-hidden="true"></span></a>
+          </div>
+        </header>
+
+        <div class="hero-main">
+          <div class="hero-copy">
+            <h1 data-i18n="heroTitle">Нужно создать мод на заказ для Minecraft? Сделаем быстро и качественно!</h1>
+            <p class="tagline" data-i18n="tagline">You Imagine It. We Build It.</p>
+          </div>
+          <div class="character-stage">
+            <img src="assets/character.png" alt="MODRYVA Minecraft character" />
+          </div>
+        </div>
+      </div>
+
+      <div class="offer-strip">
+        <div class="price-list" aria-label="Prices">
+          <div data-i18n="easy">Лёгкий мод: 100₽</div>
+          <div data-i18n="medium">Средний мод: 199₽</div>
+          <div data-i18n="difficult">Сложный мод: 250₽</div>
+        </div>
+        <a class="cta" href="order.html" data-i18n="cta">Воплотить идею</a>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>© 2026 MODRYVA</span>
+      <a href="mailto:modryva.mod@gmail.com"><span data-i18n="footerMail">Написать нам</span> · modryva.mod@gmail.com</a>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MODRYVA — Profile</title>
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="profile-page">
+    <section class="login-card">
+      <button class="close-button" type="button" onclick="location.href='index.html'" aria-label="Close">×</button>
+      <h1 data-i18n="profileTitle">Добавить аккаунт</h1>
+      <form id="profile-form" class="login-row">
+        <input id="mailbox-name" class="login-input" type="text" data-i18n-placeholder="mailbox" placeholder="Имя ящика" />
+        <div class="login-actions">
+          <button class="login-button" type="submit"><span data-i18n="login">Войти</span> →</button>
+          <label class="remember"><input type="checkbox" checked><span data-i18n="remember">запомнить</span></label>
+        </div>
+      </form>
+      <div class="other-login">
+        <div class="other-login-title" data-i18n="other">Другие способы входа</div>
+        <button id="google-login" class="google-button" type="button">Google</button>
+      </div>
+      <p class="login-help" data-i18n="loginHelp">Пока это визуальная страница профиля. Настоящие аккаунты подключим отдельно, когда понадобится.</p>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MODRYVA — Order a Mod</title>
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="inner-page">
+    <section class="inner-card">
+      <header class="inner-header">
+        <a class="brand" href="index.html"><img src="assets/logo.png" alt="MODRYVA logo"><span>MODRYVA</span></a>
+        <a class="back-link" href="index.html" data-i18n="back">← На главную</a>
+      </header>
+      <div class="inner-body">
+        <h1 data-i18n="orderTitle">Расскажи нам свою идею</h1>
+        <p class="lead" data-i18n="orderLead">Заполни форму — после нажатия кнопки откроется твоя почта с готовым письмом на MODRYVA.</p>
+
+        <form id="order-form">
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="name" data-i18n="name">Твоё имя или ник</label>
+              <input id="name" name="name" autocomplete="name" />
+            </div>
+            <div class="form-field">
+              <label for="contact" data-i18n="contact">Твоя почта / Discord</label>
+              <input id="contact" name="contact" autocomplete="email" />
+            </div>
+            <div class="form-field">
+              <label for="version" data-i18n="version">Версия Minecraft</label>
+              <input id="version" name="version" placeholder="1.21.4 / 26.3" />
+            </div>
+            <div class="form-field">
+              <label for="loader" data-i18n="loader">Загрузчик</label>
+              <select id="loader" name="loader">
+                <option>Fabric</option>
+                <option>NeoForge</option>
+                <option>Forge</option>
+                <option>Other / Другое</option>
+              </select>
+            </div>
+            <div class="form-field full">
+              <label for="idea" data-i18n="idea">Опиши мод</label>
+              <textarea id="idea" name="idea" required data-i18n-placeholder="ideaPlaceholder" placeholder="Что должен делать мод? Как он должен выглядеть? Какие функции нужны?"></textarea>
+            </div>
+          </div>
+          <div class="send-row">
+            <button class="primary-button" type="submit" data-i18n="send">Отправить идею</button>
+            <button class="secondary-button" type="button" id="copy-email" data-i18n="copy">Скопировать e-mail</button>
+          </div>
+        </form>
+
+        <div class="email-note"><span data-i18n="mailNote">Заявки принимаем на</span> <strong>modryva.mod@gmail.com</strong>. Сначала обсуждаем идею и цену — потом работа над модом.</div>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
