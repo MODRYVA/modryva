@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MODRYVA — Finish Registration</title>
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=5" />
+</head>
+<body>
+  <main class="profile-page">
+    <section class="login-card account-card" id="auth-callback-card">
+      <div class="account-brand">
+        <img src="assets/logo.png" alt="MODRYVA logo" width="48" height="48" />
+        <span>MODRYVA</span>
+      </div>
+      <div id="callback-loading">
+        <h1>Подключаем аккаунт…</h1>
+        <p class="account-lead">Проверяем вход через Google.</p>
+      </div>
+      <div id="callback-password" hidden>
+        <h1>Создай пароль MODRYVA</h1>
+        <p class="account-lead">Google-аккаунт подтверждён. Теперь придумай отдельный пароль для входа на сайт.</p>
+        <div class="account-info-box"><strong id="callback-email"></strong></div>
+        <form id="set-password-form" class="login-row">
+          <label class="account-label" for="new-password">Пароль</label>
+          <input id="new-password" class="login-input" type="password" autocomplete="new-password" required minlength="8" placeholder="Минимум 8 символов" />
+          <label class="account-label" for="confirm-password">Повтори пароль</label>
+          <input id="confirm-password" class="login-input" type="password" autocomplete="new-password" required minlength="8" placeholder="Повтори пароль" />
+          <button class="login-button full-button" type="submit">Создать аккаунт →</button>
+        </form>
+      </div>
+      <div id="callback-error" hidden>
+        <h1>Не удалось войти</h1>
+        <p class="account-lead" id="callback-error-text"></p>
+        <a class="primary-button" href="profile.html?mode=register">Вернуться к регистрации</a>
+      </div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
+</body>
+</html>
