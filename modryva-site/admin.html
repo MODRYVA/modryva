@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MODRYVA — Admin</title>
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=5" />
+</head>
+<body>
+  <main class="inner-page">
+    <section class="inner-card admin-card">
+      <header class="inner-header">
+        <a class="brand" href="index.html"><img src="assets/logo.png" alt="MODRYVA logo"><span>MODRYVA</span></a>
+        <a class="back-link" href="index.html">← На главную</a>
+      </header>
+      <div class="inner-body">
+        <h1>Панель MODRYVA</h1>
+        <p class="lead">Заказы, переписка, поддержка и выдача готовых .jar.</p>
+        <div id="admin-denied" class="email-note" hidden>Эта страница доступна только аккаунту MODRYVA.</div>
+        <div id="admin-content" hidden>
+          <div class="admin-tabs">
+            <button class="tab-button active" data-admin-tab="orders" type="button">Заказы</button>
+            <button class="tab-button" data-admin-tab="support" type="button">Поддержка</button>
+          </div>
+          <div id="admin-orders-view" class="admin-layout">
+            <aside><div id="admin-orders-list" class="orders-list"></div></aside>
+            <section id="admin-order-detail" class="conversation-panel"><div class="conversation-placeholder">Выбери заказ.</div></section>
+          </div>
+          <div id="admin-support-view" class="admin-layout" hidden>
+            <aside><div id="admin-support-list" class="orders-list"></div></aside>
+            <section id="admin-support-detail" class="conversation-panel"><div class="conversation-placeholder">Выбери обращение.</div></section>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
+</body>
+</html>
