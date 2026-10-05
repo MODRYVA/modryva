@@ -6,7 +6,7 @@
   <meta name="description" content="MODRYVA — custom Minecraft mods made to order." />
   <title>MODRYVA — Custom Minecraft Mods</title>
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <main class="page-shell">
@@ -32,7 +32,7 @@
               <svg viewBox="0 0 64 64" aria-hidden="true">
                 <path d="M12 18h40v28H12z"></path>
                 <path d="M12 22l20 15 20-15"></path>
-              </svg>
+              </svg><span class="inbox-badge" id="inbox-badge" hidden></span>
             </a>
             <a class="profile-button" href="profile.html" aria-label="Profile">
               <svg class="profile-icon" viewBox="0 0 64 64" aria-hidden="true">
@@ -60,15 +60,17 @@
           <div data-i18n="medium">Средний мод: 199₽</div>
           <div data-i18n="difficult">Сложный мод: 250₽</div>
         </div>
-        <a class="cta" href="profile.html?mode=register&next=order.html" data-i18n="cta">Воплотить идею</a>
+        <a class="cta" href="order.html" data-i18n="cta">Воплотить идею</a>
       </div>
     </section>
 
     <footer class="footer">
       <span>© 2026 MODRYVA</span>
-      <a href="mailto:modryva.mod@gmail.com"><span data-i18n="footerMail">Написать нам</span> · modryva.mod@gmail.com</a>
+      <span class="footer-links"><a href="support.html">Поддержка</a><a href="mailto:modryva.mod@gmail.com"><span data-i18n="footerMail">Написать нам</span> · modryva.mod@gmail.com</a></span>
     </footer>
   </main>
-  <script src="app.js?v=3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
