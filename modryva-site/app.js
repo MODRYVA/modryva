@@ -9,7 +9,7 @@ const translations = {
     back: '← На главную',
     orderTitle: 'Расскажи нам свою идею',
     orderLead: 'Заполни форму — после нажатия кнопки откроется твоя почта с готовым письмом на MODRYVA.',
-    name: 'Твоё имя или ник', contact: 'Твоя почта / Discord', version: 'Версия Minecraft', loader: 'Загрузчик',
+    name: 'Твоё имя или ник', contact: 'Твоя почта', version: 'Версия Minecraft', loader: 'Загрузчик',
     idea: 'Опиши мод', ideaPlaceholder: 'Что должен делать мод? Как он должен выглядеть? Какие функции нужны?',
     send: 'Отправить идею', copy: 'Скопировать e-mail',
     mailNote: 'Заявки принимаем на',
@@ -28,7 +28,7 @@ const translations = {
     back: '← Home',
     orderTitle: 'Tell us your idea',
     orderLead: 'Fill out the form — your email app will open with a ready message addressed to MODRYVA.',
-    name: 'Your name or nickname', contact: 'Your email / Discord', version: 'Minecraft version', loader: 'Loader',
+    name: 'Your name or nickname', contact: 'Your email', version: 'Minecraft version', loader: 'Loader',
     idea: 'Describe your mod', ideaPlaceholder: 'What should the mod do? How should it look? What features do you need?',
     send: 'Send idea', copy: 'Copy email',
     mailNote: 'Send requests to',
@@ -103,7 +103,7 @@ function initOrderForm(){
     const subject = lang === 'ru' ? 'Заказ мода для Minecraft — MODRYVA' : 'Custom Minecraft mod request — MODRYVA';
     const body = [
       `Name / Ник: ${data.get('name') || '-'}`,
-      `Contact / Контакт: ${data.get('contact') || '-'}`,
+      `Email / Почта: ${data.get('contact') || '-'}`,
       `Minecraft: ${data.get('version') || '-'}`,
       `Loader: ${data.get('loader') || '-'}`,
       '',
