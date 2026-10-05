@@ -76,6 +76,7 @@ a { color: inherit; text-decoration: none; }
 
 .lang-wrap { position: relative; }
 .lang-button,
+.inbox-button,
 .profile-button {
   border: 0;
   background: transparent;
@@ -118,6 +119,25 @@ a { color: inherit; text-decoration: none; }
   font-weight: 700;
 }
 .lang-menu button:hover { background: #f0f2f6; }
+
+.inbox-button {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: white;
+}
+.inbox-button:hover { background: rgba(255,255,255,.12); }
+.inbox-button svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 .profile-button {
   width: 52px;
@@ -443,3 +463,68 @@ a { color: inherit; text-decoration: none; }
   .login-button { width: 100%; }
   .remember { align-self: flex-start; }
 }
+
+
+/* Account + Inbox */
+.account-card { min-height: 0; }
+.account-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 34px;
+  font-size: 28px;
+  font-weight: 900;
+}
+.account-brand img { width: 48px; height: 48px; object-fit: contain; }
+.account-lead { margin: -24px 0 34px; color: var(--muted); line-height: 1.55; font-size: 16px; }
+.account-label { font-weight: 800; font-size: 15px; margin-bottom: -12px; }
+.account-switch {
+  margin-top: 24px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #1265e8;
+  font-weight: 800;
+  cursor: pointer;
+}
+.account-switch:hover { text-decoration: underline; }
+
+.inbox-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+.account-chip {
+  background: #eef4ff;
+  color: #2858a7;
+  border: 1px solid #d9e5ff;
+  border-radius: 999px;
+  padding: 9px 13px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.empty-inbox {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  border: 1.5px dashed #d6dce7;
+  border-radius: 18px;
+  background: #fbfcfe;
+}
+.empty-inbox svg {
+  width: 58px;
+  height: 58px;
+  fill: none;
+  stroke: #4b6ea8;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  margin-bottom: 14px;
+}
+.empty-inbox h2 { margin: 0 0 8px; font-size: 25px; }
+.empty-inbox p { margin: 0 0 24px; color: var(--muted); }
+.inbox-cta { display: inline-block; }
