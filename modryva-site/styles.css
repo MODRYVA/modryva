@@ -120,33 +120,27 @@ a { color: inherit; text-decoration: none; }
 .lang-menu button:hover { background: #f0f2f6; }
 
 .profile-button {
-  width: 47px;
-  height: 47px;
+  width: 52px;
+  height: 52px;
   border: 2px solid rgba(255,255,255,.8);
-  border-radius: 12px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
   padding: 0;
 }
 .profile-button:hover { background: rgba(255,255,255,.12); }
 .profile-icon {
-  width: 24px;
-  height: 24px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  position: relative;
+  width: 36px;
+  height: 36px;
+  display: block;
 }
-.profile-icon::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -8px;
-  width: 30px;
-  height: 15px;
-  border: 2px solid currentColor;
-  border-bottom: 0;
-  border-radius: 18px 18px 0 0;
-  transform: translateX(-50%);
+.profile-icon circle,
+.profile-icon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .hero-main {
