@@ -909,6 +909,133 @@ async function loadAdminSupport(forceId=null){
   await renderSupportDetail(selected,session,true);
 }
 
+
+async function initPayment(){
+  const form = document.querySelector('#paytr-payer-form');
+  if (!form) return;
+
+  const session = await requireAuth('payment.html' + location.search);
+  if (!session) return;
+
+  const params = new URLSearchParams(location.search);
+  const orderId = params.get('order');
+  const summary = document.querySelector('#payment-order-summary');
+  const iframeWrap = document.querySelector('#paytr-frame-wrap');
+  const iframe = document.querySelector('#paytriframe');
+  const status = document.querySelector('#payment-status');
+
+  if (!orderId){
+    if (status) status.textContent = 'Заказ не найден.';
+    form.hidden = true;
+    return;
+  }
+
+  const { data: order, error } = await db.from('orders').select('*').eq('id',orderId).maybeSingle();
+  if (error || !order){
+    if (status) status.textContent = 'Заказ не найден или недоступен.';
+    form.hidden = true;
+    return;
+  }
+
+  if (summary){
+    summary.innerHTML = `
+      <strong>${escapeHtml(order.order_number)}</strong>
+      <span>${escapeHtml(amountLabel(order))}</span>
+      <span>${escapeHtml(statusLabel(order.status))}</span>
+    `;
+  }
+
+  if (order.payment_status === 'paid'){
+    if (status) status.textContent = 'Этот заказ уже оплачен ✅';
+    form.hidden = true;
+    const done = document.querySelector('#payment-done-link');
+    if (done){ done.hidden = false; done.href = 'inbox.html?order=' + encodeURIComponent(order.id); }
+    return;
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    if (status) status.textContent = 'Подключаем защищённую форму PayTR…';
+
+    const fd = new FormData(form);
+    const { data, error: fnError } = await db.functions.invoke('paytr-create-token', {
+      body: {
+        order_id: order.id,
+        payer_name: String(fd.get('payer_name') || '').trim(),
+        phone: String(fd.get('phone') || '').trim(),
+        address: String(fd.get('address') || '').trim(),
+        lang: getLang() === 'en' ? 'en' : 'tr'
+      }
+    });
+
+    if (fnError || !data?.payment_url){
+      button.disabled = false;
+      const msg = data?.error || fnError?.message || 'Не удалось открыть PayTR.';
+      if (status){
+        status.textContent = msg === 'PAYTR_NOT_CONFIGURED'
+          ? 'PayTR ещё не подключён к merchant-аккаунту.'
+          : 'Ошибка PayTR: ' + msg;
+      }
+      return;
+    }
+
+    form.hidden = true;
+    if (status) status.textContent = data.test_mode ? 'Тестовый режим PayTR' : 'Безопасная оплата PayTR';
+    iframe.src = data.payment_url;
+    iframeWrap.hidden = false;
+    if (window.iFrameResize) {
+      try { window.iFrameResize({}, '#paytriframe'); } catch {}
+    }
+  });
+}
+
+async function initPaymentResult(){
+  const box = document.querySelector('#payment-result-box');
+  if (!box) return;
+  const session = await requireAuth('payment-result.html' + location.search);
+  if (!session) return;
+
+  const params = new URLSearchParams(location.search);
+  const orderId = params.get('order');
+  const resultHint = params.get('result');
+  const title = document.querySelector('#payment-result-title');
+  const text = document.querySelector('#payment-result-text');
+  const link = document.querySelector('#payment-result-link');
+
+  if (!orderId){
+    title.textContent = 'Заказ не найден';
+    text.textContent = 'Вернись во Входящие.';
+    return;
+  }
+
+  for (let attempt = 0; attempt < 10; attempt++){
+    const { data: order } = await db.from('orders').select('id,payment_status,status').eq('id',orderId).maybeSingle();
+    if (order?.payment_status === 'paid'){
+      title.textContent = 'Оплата получена ✅';
+      text.textContent = 'Заказ оплачен. MODRYVA уже видит его в админ-панели.';
+      link.href = 'inbox.html?order=' + encodeURIComponent(orderId);
+      link.textContent = 'Открыть заказ';
+      return;
+    }
+    if (order?.payment_status === 'failed'){
+      title.textContent = 'Оплата не прошла';
+      text.textContent = 'Можно попробовать оплатить ещё раз.';
+      link.href = 'payment.html?order=' + encodeURIComponent(orderId);
+      link.textContent = 'Попробовать снова';
+      return;
+    }
+    if (attempt < 9) await new Promise(r => setTimeout(r, 1500));
+  }
+
+  title.textContent = resultHint === 'failed' ? 'Оплата не завершена' : 'Проверяем оплату…';
+  text.textContent = 'PayTR подтверждает результат отдельно. Проверь статус заказа во Входящих через несколько секунд.';
+  link.href = 'inbox.html?order=' + encodeURIComponent(orderId);
+  link.textContent = 'Открыть Входящие';
+}
+
+
 async function initAdmin(){
   const adminContent = document.querySelector('#admin-content');
   if (!adminContent) return;
@@ -947,5 +1074,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initOrderForm();
   await initInbox();
   await initSupport();
+  await initPayment();
+  await initPaymentResult();
   await initAdmin();
 });
