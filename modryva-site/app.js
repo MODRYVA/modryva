@@ -982,7 +982,11 @@ async function initPayment(){
     }
 
     form.hidden = true;
-    if (status) status.textContent = data.test_mode ? 'Тестовый режим PayTR' : 'Безопасная оплата PayTR';
+    if (status) {
+      const amountTry = data.payment_amount_try ? Number(data.payment_amount_try).toFixed(2) : null;
+      status.textContent = (data.test_mode ? 'Тестовый режим PayTR' : 'Безопасная оплата PayTR')
+        + (amountTry ? ' · К оплате: ' + amountTry + ' ₺' : '');
+    }
     iframe.src = data.payment_url;
     iframeWrap.hidden = false;
     if (window.iFrameResize) {
@@ -1011,21 +1015,44 @@ async function initPaymentResult(){
   }
 
   for (let attempt = 0; attempt < 10; attempt++){
-    const { data: order } = await db.from('orders').select('id,payment_status,status').eq('id',orderId).maybeSingle();
+    const [{ data: order }, { data: payment }] = await Promise.all([
+      db.from('orders').select('id,payment_status,status').eq('id',orderId).maybeSingle(),
+      db.from('payments')
+        .select('status,provider_payload,created_at')
+        .eq('order_id',orderId)
+        .eq('provider','paytr')
+        .order('created_at',{ascending:false})
+        .limit(1)
+        .maybeSingle()
+    ]);
+
     if (order?.payment_status === 'paid'){
       title.textContent = 'Оплата получена ✅';
       text.textContent = 'Заказ оплачен. MODRYVA уже видит его в админ-панели.';
+      box.classList.remove('payment-error');
       link.href = 'inbox.html?order=' + encodeURIComponent(orderId);
       link.textContent = 'Открыть заказ';
       return;
     }
-    if (order?.payment_status === 'failed'){
-      title.textContent = 'Оплата не прошла';
-      text.textContent = 'Можно попробовать оплатить ещё раз.';
+
+    if (order?.payment_status === 'failed' || payment?.status === 'failed'){
+      const payload = payment?.provider_payload || {};
+      const code = String(payload.failed_reason_code || '');
+      box.classList.add('payment-error');
+
+      if (code === '9'){
+        title.textContent = 'MODRYVA не принимает вашу карту';
+        text.textContent = 'Используйте карту, которая поддерживает оплату в турецких лирах (TRY) через PayTR: Visa, Mastercard, TROY или другую поддерживаемую PayTR карту.';
+      } else {
+        title.textContent = 'Оплата не прошла';
+        text.textContent = 'Попробуйте другую карту. MODRYVA принимает оплату только в турецких лирах (TRY) через PayTR.';
+      }
+
       link.href = 'payment.html?order=' + encodeURIComponent(orderId);
-      link.textContent = 'Попробовать снова';
+      link.textContent = 'Попробовать другую карту';
       return;
     }
+
     if (attempt < 9) await new Promise(r => setTimeout(r, 1500));
   }
 
@@ -1034,8 +1061,6 @@ async function initPaymentResult(){
   link.href = 'inbox.html?order=' + encodeURIComponent(orderId);
   link.textContent = 'Открыть Входящие';
 }
-
-
 async function initAdmin(){
   const adminContent = document.querySelector('#admin-content');
   if (!adminContent) return;
