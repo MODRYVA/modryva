@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MODRYVA — PayTR</title>
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=9" />
+  <link rel="stylesheet" href="styles.css?v=10" />
 </head>
 <body>
   <main class="inner-page">
@@ -19,6 +19,13 @@
         <p class="lead">Данные банковской карты вводятся только в защищённой форме PayTR. MODRYVA их не получает и не хранит.</p>
 
         <div id="payment-order-summary" class="payment-summary"></div>
+
+        <div class="supported-cards-note">
+          <strong>Поддерживаемые карты</strong>
+          <span>Оплата проходит только в турецких лирах (TRY / ₺) через PayTR.</span>
+          <span>Рекомендуется использовать турецкие Visa, Mastercard или TROY. Другие карты могут пройти только если их банк разрешает оплату в TRY через PayTR.</span>
+        </div>
+
         <p id="payment-status" class="payment-status"></p>
 
         <form id="paytr-payer-form" class="payment-details-form">
@@ -42,16 +49,17 @@
         </form>
 
         <div id="paytr-frame-wrap" class="paytr-frame-wrap" hidden>
-          <script src="https://www.paytr.com/js/iframeResizer.min.js"></script>
+          <script src="https://www.paytr.com/js/iframeResizer.min.js?v2"></script>
           <iframe id="paytriframe" title="PayTR secure payment" frameborder="0" scrolling="no"></iframe>
         </div>
 
         <a id="payment-done-link" class="primary-button" href="inbox.html" hidden>Открыть заказ</a>
+        <p class="fx-attribution">Курс конвертации: <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">ExchangeRate-API</a></p>
       </div>
     </section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="supabase-config.js?v=5"></script>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
