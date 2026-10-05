@@ -8,7 +8,7 @@ const translations = {
     footerMail: 'Написать нам',
     back: '← На главную',
     orderTitle: 'Расскажи нам свою идею',
-    orderLead: 'Заполни форму — после нажатия кнопки откроется твоя почта с готовым письмом на MODRYVA.',
+    orderLead: 'Заполни форму — заказ появится во «Входящих» прямо на сайте.',
     name: 'Твоё имя или ник', contact: 'Твоя почта', version: 'Версия Minecraft', loader: 'Загрузчик',
     idea: 'Опиши мод', ideaPlaceholder: 'Что должен делать мод? Как он должен выглядеть? Какие функции нужны?',
     send: 'Отправить идею', copy: 'Скопировать e-mail',
@@ -34,7 +34,7 @@ const translations = {
     footerMail: 'Email us',
     back: '← Home',
     orderTitle: 'Tell us your idea',
-    orderLead: 'Fill out the form — your email app will open with a ready message addressed to MODRYVA.',
+    orderLead: 'Fill out the form — your order will appear in Inbox on the site.',
     name: 'Your name or nickname', contact: 'Your email', version: 'Minecraft version', loader: 'Loader',
     idea: 'Describe your mod', ideaPlaceholder: 'What should the mod do? How should it look? What features do you need?',
     send: 'Send idea', copy: 'Copy email',
@@ -104,6 +104,15 @@ function showToast(message){
   window.__toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
 }
 
+function getOrders(){
+  try { return JSON.parse(localStorage.getItem('modryva-orders') || '[]'); }
+  catch { return []; }
+}
+
+function saveOrders(orders){
+  localStorage.setItem('modryva-orders', JSON.stringify(orders));
+}
+
 function initOrderForm(){
   const form = document.querySelector('#order-form');
   if (!form) return;
@@ -113,27 +122,22 @@ function initOrderForm(){
     const idea = String(data.get('idea') || '').trim();
     const t = translations[getLang()];
     if (!idea){ showToast(t.enterIdea); return; }
-    const lang = getLang();
-    const subject = lang === 'ru' ? 'Заказ мода для Minecraft — MODRYVA' : 'Custom Minecraft mod request — MODRYVA';
-    const body = [
-      `Name / Ник: ${data.get('name') || '-'}`,
-      `Email / Почта: ${data.get('contact') || '-'}`,
-      `Minecraft: ${data.get('version') || '-'}`,
-      `Loader: ${data.get('loader') || '-'}`,
-      '',
-      lang === 'ru' ? 'Идея мода:' : 'Mod idea:',
-      idea
-    ].join('\n');
-    window.location.href = `mailto:modryva.mod@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  });
-  const copy = document.querySelector('#copy-email');
-  if (copy) copy.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText('modryva.mod@gmail.com');
-      showToast(translations[getLang()].mailCopied);
-    } catch {
-      showToast('modryva.mod@gmail.com');
-    }
+
+    const id = 'MDR-' + String(Date.now()).slice(-6);
+    const order = {
+      id,
+      name: String(data.get('name') || '').trim(),
+      email: String(data.get('contact') || '').trim(),
+      version: String(data.get('version') || '').trim(),
+      loader: String(data.get('loader') || '').trim(),
+      idea,
+      status: 'new',
+      createdAt: new Date().toISOString()
+    };
+    const orders = getOrders();
+    orders.unshift(order);
+    saveOrders(orders);
+    window.location.href = 'inbox.html?order=' + encodeURIComponent(id);
   });
 }
 
@@ -212,6 +216,47 @@ function initAccountUI(){
   }
 }
 
+function escapeHtml(value){
+  return String(value || '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+function initInbox(){
+  const list = document.querySelector('#orders-list');
+  if (!list) return;
+  const orders = getOrders();
+  const empty = document.querySelector('#empty-inbox');
+  if (!orders.length){
+    if (empty) empty.hidden = false;
+    return;
+  }
+  if (empty) empty.hidden = true;
+  const ru = getLang() === 'ru';
+  list.innerHTML = orders.map(order => `
+    <article class="order-card">
+      <div class="order-card-top">
+        <div>
+          <div class="order-id">${escapeHtml(order.id)}</div>
+          <h2>${escapeHtml(order.idea.length > 58 ? order.idea.slice(0,58) + '…' : order.idea)}</h2>
+        </div>
+        <span class="status-badge">${ru ? 'Новый заказ' : 'New order'}</span>
+      </div>
+      <div class="order-meta">
+        <span>Minecraft: ${escapeHtml(order.version || '—')}</span>
+        <span>${ru ? 'Загрузчик' : 'Loader'}: ${escapeHtml(order.loader || '—')}</span>
+      </div>
+      <div class="order-message">
+        <strong>${ru ? 'Ты' : 'You'}:</strong>
+        <p>${escapeHtml(order.idea)}</p>
+      </div>
+      <div class="order-waiting">
+        ${ru ? 'Ожидает ответа MODRYVA.' : 'Waiting for a reply from MODRYVA.'}
+      </div>
+    </article>
+  `).join('');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   applyLang();
   initLanguageMenu();
@@ -219,4 +264,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initOrderForm();
   initProfile();
   initAccountUI();
+  initInbox();
 });
