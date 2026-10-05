@@ -3,27 +3,31 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MODRYVA — Profile</title>
+  <title>MODRYVA — Account</title>
   <link rel="icon" href="assets/logo.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="profile-page">
-    <section class="login-card">
+    <section class="login-card account-card">
       <button class="close-button" type="button" onclick="location.href='index.html'" aria-label="Close">×</button>
-      <h1 data-i18n="profileTitle">Добавить аккаунт</h1>
+      <div class="account-brand">
+        <img src="assets/logo.png" alt="MODRYVA logo" />
+        <span>MODRYVA</span>
+      </div>
+      <h1 data-account-title>Создать аккаунт</h1>
+      <p class="account-lead" data-account-lead>Аккаунт нужен, чтобы отправлять заказы, получать ответы и скачивать готовые .jar прямо на сайте.</p>
+
       <form id="profile-form" class="login-row">
-        <input id="mailbox-name" class="login-input" type="text" data-i18n-placeholder="mailbox" placeholder="Имя ящика" />
+        <label class="account-label" for="account-email" data-i18n="accountEmailLabel">Почта</label>
+        <input id="account-email" class="login-input" type="email" autocomplete="email" required placeholder="name@example.com" />
         <div class="login-actions">
-          <button class="login-button" type="submit"><span data-i18n="login">Войти</span> →</button>
-          <label class="remember"><input type="checkbox" checked><span data-i18n="remember">запомнить</span></label>
+          <button class="login-button" type="submit"><span data-account-submit>Создать аккаунт</span> →</button>
         </div>
       </form>
-      <div class="other-login">
-        <div class="other-login-title" data-i18n="other">Другие способы входа</div>
-        <button id="google-login" class="google-button" type="button">Google</button>
-      </div>
-      <p class="login-help" data-i18n="loginHelp">Пока это визуальная страница профиля. Настоящие аккаунты подключим отдельно, когда понадобится.</p>
+
+      <button id="account-mode-switch" class="account-switch" type="button">Уже есть аккаунт? Войти</button>
+      <p class="login-help">Сейчас включён тестовый вход по e-mail без пароля. Настоящую регистрацию и защищённые аккаунты подключим следующим шагом через backend.</p>
     </section>
   </main>
   <script src="app.js"></script>
