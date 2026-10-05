@@ -5,38 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MODRYVA — Inbox</title>
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <main class="inner-page">
     <section class="inner-card inbox-card">
       <header class="inner-header">
         <a class="brand" href="index.html"><img src="assets/logo.png" alt="MODRYVA logo"><span>MODRYVA</span></a>
-        <a class="back-link" href="index.html" data-i18n="back">← На главную</a>
+        <div class="header-links">
+          <a class="back-link" href="support.html">Поддержка</a>
+          <a class="back-link" href="index.html" data-i18n="back">← На главную</a>
+        </div>
       </header>
       <div class="inner-body">
         <div class="inbox-heading">
           <div>
             <h1 data-i18n="inboxTitle">Входящие</h1>
-            <p class="lead" data-i18n="inboxLead">Здесь будут твои заказы, ответы MODRYVA и готовые файлы .jar.</p>
+            <p class="lead" data-i18n="inboxLead">Здесь твои заказы, ответы MODRYVA и готовые файлы .jar.</p>
           </div>
           <span class="account-chip" id="account-chip"></span>
         </div>
 
-        <div id="orders-list" class="orders-list"></div>
-
-        <div class="empty-inbox" id="empty-inbox">
-          <svg viewBox="0 0 64 64" aria-hidden="true">
-            <path d="M10 18h44v30H10z"></path>
-            <path d="M10 22l22 16 22-16"></path>
-          </svg>
-          <h2 data-i18n="inboxEmptyTitle">Пока сообщений нет</h2>
-          <p data-i18n="inboxEmptyText">После отправки заказа переписка появится здесь.</p>
-          <a class="primary-button inbox-cta" href="order.html" data-i18n="newOrder">Создать заказ</a>
+        <div class="inbox-layout">
+          <aside>
+            <div id="orders-list" class="orders-list"></div>
+            <div class="empty-mini" id="empty-inbox" hidden>
+              <p>Заказов пока нет.</p>
+              <a class="primary-button" href="order.html">Создать заказ</a>
+            </div>
+          </aside>
+          <section class="conversation-panel" id="order-detail">
+            <div class="conversation-placeholder">Выбери заказ слева, чтобы открыть переписку.</div>
+          </section>
         </div>
       </div>
     </section>
   </main>
-  <script src="app.js?v=3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
