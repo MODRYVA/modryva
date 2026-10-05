@@ -1060,3 +1060,35 @@ a { color: inherit; text-decoration: none; }
   border: 0;
 }
 .payment-result-card { min-height: 360px; }
+
+.supported-cards-note {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 15px 17px;
+  border: 1px solid #cfe0ff;
+  border-radius: 14px;
+  background: #f3f7ff;
+  color: #36506f;
+  line-height: 1.45;
+  font-size: 14px;
+}
+.supported-cards-note strong {
+  color: #163c75;
+  font-size: 15px;
+}
+.payment-error #payment-result-title,
+.payment-error #payment-result-text {
+  color: #c62828;
+}
+.payment-error {
+  border: 2px solid #efb6b6;
+}
+.fx-attribution {
+  margin-top: 18px;
+  color: #8a9099;
+  font-size: 11px;
+}
+.fx-attribution a {
+  text-decoration: underline;
+}
