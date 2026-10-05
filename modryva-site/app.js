@@ -398,7 +398,9 @@ function statusLabel(status){
 function amountLabel(order){
   if (order.currency === 'USDT') return (order.amount_minor / 100).toFixed(2).replace(/\.00$/,'') + ' USDT';
   if (order.currency === 'RUB') return (order.amount_minor / 100).toFixed(0) + '₽';
-  if (order.currency === 'USD') return '
+  if (order.currency === 'USD') return '$' + (order.amount_minor / 100).toFixed(2).replace(/\.00$/,'');
+  return order.amount_minor + ' ' + order.currency;
+}
 
 function orderCardHtml(order, active=false){
   return `<a class="order-card compact-card ${active ? 'active' : ''}" href="inbox.html?order=${encodeURIComponent(order.id)}">
