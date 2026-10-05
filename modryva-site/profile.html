@@ -5,31 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MODRYVA — Account</title>
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <main class="profile-page">
     <section class="login-card account-card">
       <button class="close-button" type="button" onclick="location.href='index.html'" aria-label="Close">×</button>
       <div class="account-brand">
-        <img src="assets/logo.png" alt="MODRYVA logo" width="48" height="48" style="width:48px;height:48px;object-fit:contain" />
+        <img src="assets/logo.png" alt="MODRYVA logo" width="48" height="48" />
         <span>MODRYVA</span>
       </div>
-      <h1 data-account-title>Создать аккаунт</h1>
-      <p class="account-lead" data-account-lead>Аккаунт нужен, чтобы отправлять заказы, получать ответы и скачивать готовые .jar прямо на сайте.</p>
 
-      <form id="profile-form" class="login-row">
-        <label class="account-label" for="account-email" data-i18n="accountEmailLabel">Почта</label>
-        <input id="account-email" class="login-input" type="email" autocomplete="email" required placeholder="name@example.com" />
-        <div class="login-actions">
-          <button class="login-button" type="submit"><span data-account-submit>Создать аккаунт</span> →</button>
+      <div id="account-signed-out">
+        <h1 data-account-title>Создать аккаунт</h1>
+        <p class="account-lead" data-account-lead>Сначала выбери Google-аккаунт. Затем создашь отдельный пароль для MODRYVA.</p>
+
+        <button class="google-auth-button" id="google-auth" type="button">
+          <span class="google-g">G</span>
+          <span data-google-label>Продолжить с Google</span>
+        </button>
+
+        <div class="account-divider"><span>или</span></div>
+
+        <form id="password-login-form" class="login-row" hidden>
+          <label class="account-label" for="login-email">Почта</label>
+          <input id="login-email" class="login-input" type="email" autocomplete="email" required placeholder="name@example.com" />
+          <label class="account-label" for="login-password">Пароль MODRYVA</label>
+          <input id="login-password" class="login-input" type="password" autocomplete="current-password" required minlength="8" placeholder="••••••••" />
+          <button class="login-button full-button" type="submit">Войти →</button>
+        </form>
+
+        <button id="account-mode-switch" class="account-switch" type="button">Уже есть аккаунт? Войти по почте и паролю</button>
+        <p class="login-help">При регистрации Google подтверждает твою почту, а пароль MODRYVA создаётся уже после выбора аккаунта.</p>
+      </div>
+
+      <div id="account-signed-in" hidden>
+        <h1>Аккаунт</h1>
+        <p class="account-lead">Ты уже вошёл в MODRYVA.</p>
+        <div class="account-info-box">
+          <strong id="signed-in-email"></strong>
         </div>
-      </form>
-
-      <button id="account-mode-switch" class="account-switch" type="button">Уже есть аккаунт? Войти</button>
-      <p class="login-help">Сейчас включён тестовый вход по e-mail без пароля. Настоящую регистрацию и защищённые аккаунты подключим следующим шагом через backend.</p>
+        <div class="account-actions-grid">
+          <a class="primary-button" href="inbox.html">Входящие</a>
+          <a class="secondary-button" href="support.html">Поддержка</a>
+          <a class="secondary-button" id="admin-link" href="admin.html" hidden>Панель MODRYVA</a>
+          <button class="danger-button" id="logout-button" type="button">Выйти</button>
+        </div>
+      </div>
     </section>
   </main>
-  <script src="app.js?v=3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
