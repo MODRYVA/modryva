@@ -16,7 +16,14 @@ const translations = {
     profileTitle: 'Добавить аккаунт', mailbox: 'Имя ящика', login: 'Войти', remember: 'запомнить',
     other: 'Другие способы входа', googleSoon: 'Вход через Google пока не подключён.',
     loginHelp: 'Пока это визуальная страница профиля. Настоящие аккаунты подключим отдельно, когда понадобится.',
-    mailCopied: 'E-mail скопирован', enterIdea: 'Сначала опиши идею мода.'
+    mailCopied: 'E-mail скопирован', enterIdea: 'Сначала опиши идею мода.',
+    inboxTitle: 'Входящие',
+    inboxLead: 'Здесь будут твои заказы, ответы MODRYVA и готовые файлы .jar.',
+    inboxEmptyTitle: 'Пока сообщений нет',
+    inboxEmptyText: 'После отправки заказа переписка появится здесь.',
+    newOrder: 'Создать заказ',
+    accountEmailLabel: 'Почта',
+    orderAccountNote: 'Заказ привязывается к твоему аккаунту. Ответ MODRYVA появится во «Входящих», а уведомление придёт на твою почту.'
   },
   en: {
     langCode: 'EN', flag: '🇺🇸',
@@ -35,7 +42,14 @@ const translations = {
     profileTitle: 'Add account', mailbox: 'Mailbox name', login: 'Sign in', remember: 'remember me',
     other: 'Other sign-in methods', googleSoon: 'Google sign-in is not connected yet.',
     loginHelp: 'For now this is the profile UI. Real accounts can be connected separately later.',
-    mailCopied: 'Email copied', enterIdea: 'Describe your mod idea first.'
+    mailCopied: 'Email copied', enterIdea: 'Describe your mod idea first.',
+    inboxTitle: 'Inbox',
+    inboxLead: 'Your orders, MODRYVA replies and finished .jar files will appear here.',
+    inboxEmptyTitle: 'No messages yet',
+    inboxEmptyText: 'Your conversation will appear here after you send an order.',
+    newOrder: 'Create an order',
+    accountEmailLabel: 'Email',
+    orderAccountNote: 'This order is linked to your account. MODRYVA replies will appear in Inbox and you will also get an email notification.'
   }
 };
 
@@ -123,24 +137,86 @@ function initOrderForm(){
   });
 }
 
+function getAccountEmail(){
+  return localStorage.getItem('modryva-user-email') || '';
+}
+
+function requireAccount(){
+  const protectedPage = document.querySelector('#order-form') || document.querySelector('.inbox-card');
+  if (!protectedPage) return;
+  if (!getAccountEmail()){
+    const next = document.querySelector('#order-form') ? 'order.html' : 'inbox.html';
+    window.location.replace(`profile.html?mode=register&next=${encodeURIComponent(next)}`);
+  }
+}
+
 function initProfile(){
   const form = document.querySelector('#profile-form');
-  if (form) form.addEventListener('submit', e => {
-    e.preventDefault();
-    const name = document.querySelector('#mailbox-name')?.value.trim();
-    if (name) localStorage.setItem('modryva-profile-name', name);
-    window.location.href = 'index.html';
+  if (!form) return;
+
+  const params = new URLSearchParams(window.location.search);
+  let mode = params.get('mode') === 'login' ? 'login' : 'register';
+  const next = params.get('next') || 'index.html';
+  const emailInput = document.querySelector('#account-email');
+  const title = document.querySelector('[data-account-title]');
+  const lead = document.querySelector('[data-account-lead]');
+  const submitText = document.querySelector('[data-account-submit]');
+  const switchBtn = document.querySelector('#account-mode-switch');
+  const saved = getAccountEmail();
+  if (saved && emailInput) emailInput.value = saved;
+
+  function renderMode(){
+    const ru = getLang() === 'ru';
+    if (mode === 'register'){
+      title.textContent = ru ? 'Создать аккаунт' : 'Create account';
+      lead.textContent = ru
+        ? 'Аккаунт нужен, чтобы отправлять заказы, получать ответы и скачивать готовые .jar прямо на сайте.'
+        : 'You need an account to send orders, receive replies and download finished .jar files on the site.';
+      submitText.textContent = ru ? 'Создать аккаунт' : 'Create account';
+      switchBtn.textContent = ru ? 'Уже есть аккаунт? Войти' : 'Already have an account? Sign in';
+    } else {
+      title.textContent = ru ? 'Войти' : 'Sign in';
+      lead.textContent = ru
+        ? 'Войди, чтобы открыть свои заказы и входящие.'
+        : 'Sign in to open your orders and inbox.';
+      submitText.textContent = ru ? 'Войти' : 'Sign in';
+      switchBtn.textContent = ru ? 'Нет аккаунта? Зарегистрироваться' : 'No account? Create one';
+    }
+  }
+
+  renderMode();
+  switchBtn.addEventListener('click', () => {
+    mode = mode === 'register' ? 'login' : 'register';
+    renderMode();
   });
-  const google = document.querySelector('#google-login');
-  if (google) google.addEventListener('click', () => showToast(translations[getLang()].googleSoon));
-  const saved = localStorage.getItem('modryva-profile-name');
-  const input = document.querySelector('#mailbox-name');
-  if (saved && input) input.value = saved;
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const email = String(emailInput?.value || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) return;
+    localStorage.setItem('modryva-user-email', email);
+    const allowed = ['index.html','order.html','inbox.html'];
+    window.location.href = allowed.includes(next) ? next : 'index.html';
+  });
+}
+
+function initAccountUI(){
+  const email = getAccountEmail();
+  const chip = document.querySelector('#account-chip');
+  if (chip && email) chip.textContent = email;
+
+  const orderEmail = document.querySelector('#contact');
+  if (orderEmail && email){
+    orderEmail.value = email;
+    orderEmail.readOnly = true;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   applyLang();
   initLanguageMenu();
+  requireAccount();
   initOrderForm();
   initProfile();
+  initAccountUI();
 });
