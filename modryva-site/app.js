@@ -146,6 +146,8 @@ async function initHome(){
   if (profileButton && session){
     profileButton.title = session.user.email || 'Account';
   }
+  const adminTopButton = document.querySelector('#admin-top-button');
+  if (adminTopButton && session && isAdminEmail(session.user.email)) adminTopButton.hidden = false;
   await updateInboxBadge();
 }
 
@@ -521,10 +523,13 @@ function supportTicketCard(t, active=false, hrefBase='support.html'){
 async function renderSupportDetail(ticket, session, admin=false){
   const detail = document.querySelector(admin ? '#admin-support-detail' : '#support-detail');
   if (!detail) return;
-  const { data: messages } = await db.from('support_messages').select('*').eq('ticket_id', ticket.id).order('created_at');
+  const [{ data: messages }, { data: ticketOwner }] = await Promise.all([
+    db.from('support_messages').select('*').eq('ticket_id', ticket.id).order('created_at'),
+    admin ? db.from('profiles').select('email,display_name').eq('id',ticket.user_id).maybeSingle() : Promise.resolve({data:null})
+  ]);
   detail.innerHTML = `
     <div class="conversation-head">
-      <div><div class="order-id">${escapeHtml(ticket.ticket_number)}</div><h2>${escapeHtml(ticket.subject)}</h2></div>
+      <div><div class="order-id">${escapeHtml(ticket.ticket_number)}</div><h2>${escapeHtml(ticket.subject)}</h2>${admin ? '<div class="admin-customer-email">'+escapeHtml(ticketOwner?.email || '')+'</div>' : ''}</div>
       <span class="status-badge">${escapeHtml(ticket.status)}</span>
     </div>
     <div class="chat-thread">${(messages || []).map(m => {
@@ -606,14 +611,15 @@ async function initSupport(){
 async function adminOrderDetail(order, session){
   const detail = document.querySelector('#admin-order-detail');
   if (!detail) return;
-  const [{data:messages},{data:files}] = await Promise.all([
+  const [{data:messages},{data:files},{data:customerProfile}] = await Promise.all([
     db.from('order_messages').select('*').eq('order_id',order.id).order('created_at'),
-    db.from('order_files').select('*').eq('order_id',order.id).order('created_at',{ascending:false})
+    db.from('order_files').select('*').eq('order_id',order.id).order('created_at',{ascending:false}),
+    db.from('profiles').select('email,display_name').eq('id',order.user_id).maybeSingle()
   ]);
 
   detail.innerHTML = `
     <div class="conversation-head">
-      <div><div class="order-id">${escapeHtml(order.order_number)}</div><h2>${escapeHtml(order.customer_name || 'Client')}</h2></div>
+      <div><div class="order-id">${escapeHtml(order.order_number)}</div><h2>${escapeHtml(order.customer_name || customerProfile?.display_name || 'Client')}</h2><div class="admin-customer-email">${escapeHtml(customerProfile?.email || '')}</div></div>
       <span class="status-badge status-${escapeHtml(order.status)}">${escapeHtml(statusLabel(order.status))}</span>
     </div>
     <div class="detail-meta">
