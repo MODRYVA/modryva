@@ -347,12 +347,34 @@ async function initOrderForm(){
       return;
     }
 
-    await db.from('order_messages').insert({
+    const { data: firstMessage, error: messageError } = await db.from('order_messages').insert({
       order_id: order.id,
       sender_id: session.user.id,
       body: payload.idea,
       is_system: false
-    });
+    }).select().single();
+
+    if (messageError){
+      button.disabled = false;
+      showToast(messageError.message);
+      return;
+    }
+
+    const initialFiles = document.querySelector('#order-files')?.files;
+    try {
+      if (initialFiles?.length){
+        await uploadConversationFiles({
+          files: initialFiles,
+          session,
+          orderId: order.id,
+          orderMessageId: firstMessage.id
+        });
+      }
+    } catch (fileError){
+      button.disabled = false;
+      showToast(fileError.message || String(fileError));
+      return;
+    }
 
     location.href = 'inbox.html?order=' + encodeURIComponent(order.id);
   });
@@ -389,6 +411,64 @@ function orderCardHtml(order, active=false){
   </a>`;
 }
 
+
+const MAX_CONVERSATION_FILE_SIZE = 50 * 1024 * 1024;
+
+function safeFileName(name){
+  return String(name || 'file').replace(/[^a-zA-Z0-9._,'!&$@=;:+?() -]/g, '_');
+}
+
+function attachmentButtonsHtml(items){
+  return (items || []).map(a => `
+    <button type="button" class="attachment-download" data-path="${escapeHtml(a.storage_path)}" data-name="${escapeHtml(a.original_name)}">
+      📎 ${escapeHtml(a.original_name)}
+    </button>
+  `).join('');
+}
+
+async function downloadConversationFile(path, name){
+  const { data, error } = await db.storage.from('conversation-files').download(path);
+  if (error){ showToast(error.message); return; }
+  const url = URL.createObjectURL(data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name || 'file';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+async function uploadConversationFiles({files, session, orderId=null, ticketId=null, orderMessageId=null, supportMessageId=null}){
+  const list = Array.from(files || []);
+  for (const file of list){
+    if (file.size > MAX_CONVERSATION_FILE_SIZE){
+      throw new Error(`${file.name}: максимум 50 МБ на файл.`);
+    }
+    const path = `${session.user.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+    const { error: uploadError } = await db.storage
+      .from('conversation-files')
+      .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert:false });
+    if (uploadError) throw uploadError;
+
+    const { error: rowError } = await db.from('attachments').insert({
+      uploader_id: session.user.id,
+      order_id: orderId,
+      ticket_id: ticketId,
+      order_message_id: orderMessageId,
+      support_message_id: supportMessageId,
+      storage_path: path,
+      original_name: file.name,
+      mime_type: file.type || null,
+      size_bytes: file.size
+    });
+    if (rowError){
+      await db.storage.from('conversation-files').remove([path]);
+      throw rowError;
+    }
+  }
+}
+
 async function downloadOrderFile(path, name){
   const { data, error } = await db.storage.from('order-files').download(path);
   if (error){ showToast(error.message); return; }
@@ -405,9 +485,10 @@ async function downloadOrderFile(path, name){
 async function renderOrderDetail(order, session){
   const detail = document.querySelector('#order-detail');
   if (!detail) return;
-  const [{ data: messages }, { data: files }] = await Promise.all([
+  const [{ data: messages }, { data: files }, { data: attachments }] = await Promise.all([
     db.from('order_messages').select('*').eq('order_id', order.id).order('created_at'),
-    db.from('order_files').select('*').eq('order_id', order.id).order('created_at', {ascending:false})
+    db.from('order_files').select('*').eq('order_id', order.id).order('created_at', {ascending:false}),
+    db.from('attachments').select('*').eq('order_id', order.id).order('created_at')
   ]);
 
   const filesHtml = (files || []).map(f => `
@@ -417,9 +498,11 @@ async function renderOrderDetail(order, session){
 
   const messagesHtml = (messages || []).map(m => {
     const mine = m.sender_id === session.user.id;
+    const attached = (attachments || []).filter(a => a.order_message_id === m.id);
     return `<div class="chat-message ${mine ? 'mine' : 'theirs'}">
       <div class="chat-author">${mine ? (getLang()==='ru'?'Ты':'You') : 'MODRYVA'}</div>
       <div class="chat-bubble">${escapeHtml(m.body)}</div>
+      ${attached.length ? '<div class="message-files">'+attachmentButtonsHtml(attached)+'</div>' : ''}
       <div class="chat-time">${escapeHtml(formatDate(m.created_at))}</div>
     </div>`;
   }).join('');
@@ -441,25 +524,54 @@ async function renderOrderDetail(order, session){
     ${filesHtml ? '<div class="files-box"><strong>Готовые файлы</strong><div class="files-row">'+filesHtml+'</div></div>' : ''}
     <div class="chat-thread" id="chat-thread">${messagesHtml || '<p class="muted">Сообщений пока нет.</p>'}</div>
     <form class="chat-form" id="order-message-form">
-      <textarea id="order-message-body" required maxlength="10000" placeholder="Напиши MODRYVA…"></textarea>
-      <button class="primary-button" type="submit">Отправить</button>
+      <textarea id="order-message-body" maxlength="10000" placeholder="Напиши MODRYVA…"></textarea>
+      <div class="chat-send-tools">
+        <label class="attach-button">📎 Файлы<input type="file" id="order-message-files" multiple /></label>
+        <span class="file-limit-note">до 50 МБ каждый</span>
+        <button class="primary-button" type="submit">Отправить</button>
+      </div>
     </form>`;
 
   detail.querySelectorAll('.file-download').forEach(btn => btn.addEventListener('click', () => {
     downloadOrderFile(btn.dataset.path, btn.dataset.name);
   }));
+  detail.querySelectorAll('.attachment-download').forEach(btn => btn.addEventListener('click', () => {
+    downloadConversationFile(btn.dataset.path, btn.dataset.name);
+  }));
 
   detail.querySelector('#order-message-form')?.addEventListener('submit', async e => {
     e.preventDefault();
     const body = detail.querySelector('#order-message-body').value.trim();
-    if (!body) return;
-    const { error } = await db.from('order_messages').insert({
+    const fileInput = detail.querySelector('#order-message-files');
+    const filesToSend = Array.from(fileInput?.files || []);
+    if (!body && !filesToSend.length) return;
+    const button = e.currentTarget.querySelector('button[type="submit"]');
+    button.disabled = true;
+
+    const { data: message, error } = await db.from('order_messages').insert({
       order_id: order.id,
       sender_id: session.user.id,
-      body,
+      body: body || (getLang()==='ru' ? '📎 Файлы' : '📎 Files'),
       is_system:false
-    });
-    if (error){ showToast(error.message); return; }
+    }).select().single();
+
+    if (error){ button.disabled=false; showToast(error.message); return; }
+
+    try {
+      if (filesToSend.length){
+        await uploadConversationFiles({
+          files: filesToSend,
+          session,
+          orderId: order.id,
+          orderMessageId: message.id
+        });
+      }
+    } catch (fileError){
+      button.disabled=false;
+      showToast(fileError.message || String(fileError));
+      return;
+    }
+
     await loadInbox(order.id);
   });
 
@@ -473,7 +585,6 @@ async function renderOrderDetail(order, session){
     if (thread) thread.scrollTop = thread.scrollHeight;
   });
 }
-
 async function loadInbox(forceOrderId=null){
   const list = document.querySelector('#orders-list');
   if (!list) return;
@@ -509,6 +620,7 @@ async function initInbox(){
     .on('postgres_changes', {event:'*',schema:'public',table:'orders'}, () => loadInbox())
     .on('postgres_changes', {event:'INSERT',schema:'public',table:'order_messages'}, () => loadInbox())
     .on('postgres_changes', {event:'INSERT',schema:'public',table:'order_files'}, () => loadInbox())
+    .on('postgres_changes', {event:'INSERT',schema:'public',table:'attachments'}, () => loadInbox())
     .subscribe();
 }
 
@@ -523,9 +635,10 @@ function supportTicketCard(t, active=false, hrefBase='support.html'){
 async function renderSupportDetail(ticket, session, admin=false){
   const detail = document.querySelector(admin ? '#admin-support-detail' : '#support-detail');
   if (!detail) return;
-  const [{ data: messages }, { data: ticketOwner }] = await Promise.all([
+  const [{ data: messages }, { data: ticketOwner }, { data: attachments }] = await Promise.all([
     db.from('support_messages').select('*').eq('ticket_id', ticket.id).order('created_at'),
-    admin ? db.from('profiles').select('email,display_name').eq('id',ticket.user_id).maybeSingle() : Promise.resolve({data:null})
+    admin ? db.from('profiles').select('email,display_name').eq('id',ticket.user_id).maybeSingle() : Promise.resolve({data:null}),
+    db.from('attachments').select('*').eq('ticket_id', ticket.id).order('created_at')
   ]);
   detail.innerHTML = `
     <div class="conversation-head">
@@ -534,32 +647,62 @@ async function renderSupportDetail(ticket, session, admin=false){
     </div>
     <div class="chat-thread">${(messages || []).map(m => {
       const mine = m.sender_id === session.user.id;
+      const attached = (attachments || []).filter(a => a.support_message_id === m.id);
       return `<div class="chat-message ${mine ? 'mine':'theirs'}">
         <div class="chat-author">${mine ? (admin ? 'MODRYVA' : (getLang()==='ru'?'Ты':'You')) : (admin ? 'Клиент' : 'MODRYVA')}</div>
         <div class="chat-bubble">${escapeHtml(m.body)}</div>
+        ${attached.length ? '<div class="message-files">'+attachmentButtonsHtml(attached)+'</div>' : ''}
         <div class="chat-time">${escapeHtml(formatDate(m.created_at))}</div>
       </div>`;
     }).join('')}</div>
     <form class="chat-form" id="${admin ? 'admin-support-reply' : 'support-reply-form'}">
-      <textarea required maxlength="10000" placeholder="${admin ? 'Ответ клиенту…' : 'Ответ поддержке…'}"></textarea>
-      <button class="primary-button" type="submit">Отправить</button>
+      <textarea maxlength="10000" placeholder="${admin ? 'Ответ клиенту…' : 'Ответ поддержке…'}"></textarea>
+      <div class="chat-send-tools">
+        <label class="attach-button">📎 Файлы<input type="file" multiple /></label>
+        <span class="file-limit-note">до 50 МБ каждый</span>
+        <button class="primary-button" type="submit">Отправить</button>
+      </div>
     </form>`;
+
+  detail.querySelectorAll('.attachment-download').forEach(btn => btn.addEventListener('click', () => {
+    downloadConversationFile(btn.dataset.path, btn.dataset.name);
+  }));
 
   detail.querySelector('form')?.addEventListener('submit', async e => {
     e.preventDefault();
     const body = e.currentTarget.querySelector('textarea').value.trim();
-    if (!body) return;
-    const { error } = await db.from('support_messages').insert({
+    const filesToSend = Array.from(e.currentTarget.querySelector('input[type="file"]')?.files || []);
+    if (!body && !filesToSend.length) return;
+    const button = e.currentTarget.querySelector('button[type="submit"]');
+    button.disabled = true;
+
+    const { data: message, error } = await db.from('support_messages').insert({
       ticket_id: ticket.id,
       sender_id: session.user.id,
-      body
-    });
-    if (error){ showToast(error.message); return; }
+      body: body || (getLang()==='ru' ? '📎 Файлы' : '📎 Files')
+    }).select().single();
+
+    if (error){ button.disabled=false; showToast(error.message); return; }
+
+    try {
+      if (filesToSend.length){
+        await uploadConversationFiles({
+          files: filesToSend,
+          session,
+          ticketId: ticket.id,
+          supportMessageId: message.id
+        });
+      }
+    } catch (fileError){
+      button.disabled=false;
+      showToast(fileError.message || String(fileError));
+      return;
+    }
+
     if (admin) await loadAdminSupport(ticket.id);
     else await loadSupport(ticket.id);
   });
 }
-
 async function loadSupport(forceTicketId=null){
   const list = document.querySelector('#support-list');
   if (!list) return;
@@ -595,7 +738,27 @@ async function initSupport(){
       .insert({user_id:session.user.id,subject,status:'open'})
       .select().single();
     if (error){ button.disabled=false; showToast(error.message); return; }
-    await db.from('support_messages').insert({ticket_id:ticket.id,sender_id:session.user.id,body});
+    const { data: firstSupportMessage, error: supportMessageError } = await db.from('support_messages')
+      .insert({ticket_id:ticket.id,sender_id:session.user.id,body})
+      .select().single();
+    if (supportMessageError){ button.disabled=false; showToast(supportMessageError.message); return; }
+
+    try {
+      const newFiles = document.querySelector('#support-new-files')?.files;
+      if (newFiles?.length){
+        await uploadConversationFiles({
+          files:newFiles,
+          session,
+          ticketId:ticket.id,
+          supportMessageId:firstSupportMessage.id
+        });
+      }
+    } catch (fileError){
+      button.disabled=false;
+      showToast(fileError.message || String(fileError));
+      return;
+    }
+
     form.reset();
     button.disabled = false;
     history.replaceState(null,'','support.html?ticket='+encodeURIComponent(ticket.id));
@@ -605,16 +768,18 @@ async function initSupport(){
   await loadSupport();
   db.channel('modryva-support-' + session.user.id)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'support_messages'},()=>loadSupport())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'attachments'},()=>loadSupport())
     .subscribe();
 }
 
 async function adminOrderDetail(order, session){
   const detail = document.querySelector('#admin-order-detail');
   if (!detail) return;
-  const [{data:messages},{data:files},{data:customerProfile}] = await Promise.all([
+  const [{data:messages},{data:files},{data:customerProfile},{data:attachments}] = await Promise.all([
     db.from('order_messages').select('*').eq('order_id',order.id).order('created_at'),
     db.from('order_files').select('*').eq('order_id',order.id).order('created_at',{ascending:false}),
-    db.from('profiles').select('email,display_name').eq('id',order.user_id).maybeSingle()
+    db.from('profiles').select('email,display_name').eq('id',order.user_id).maybeSingle(),
+    db.from('attachments').select('*').eq('order_id',order.id).order('created_at')
   ]);
 
   detail.innerHTML = `
@@ -646,12 +811,21 @@ async function adminOrderDetail(order, session){
     </div>
     <div class="chat-thread">${(messages||[]).map(m=>{
       const mine=m.sender_id===session.user.id;
-      return `<div class="chat-message ${mine?'mine':'theirs'}"><div class="chat-author">${mine?'MODRYVA':'Клиент'}</div><div class="chat-bubble">${escapeHtml(m.body)}</div><div class="chat-time">${escapeHtml(formatDate(m.created_at))}</div></div>`;
+      const attached=(attachments||[]).filter(a=>a.order_message_id===m.id);
+      return `<div class="chat-message ${mine?'mine':'theirs'}"><div class="chat-author">${mine?'MODRYVA':'Клиент'}</div><div class="chat-bubble">${escapeHtml(m.body)}</div>${attached.length?'<div class="message-files">'+attachmentButtonsHtml(attached)+'</div>':''}<div class="chat-time">${escapeHtml(formatDate(m.created_at))}</div></div>`;
     }).join('')}</div>
     <form class="chat-form" id="admin-order-reply">
-      <textarea required maxlength="10000" placeholder="Ответ клиенту…"></textarea>
-      <button class="primary-button" type="submit">Отправить</button>
+      <textarea maxlength="10000" placeholder="Ответ клиенту…"></textarea>
+      <div class="chat-send-tools">
+        <label class="attach-button">📎 Файлы<input type="file" multiple /></label>
+        <span class="file-limit-note">до 50 МБ каждый</span>
+        <button class="primary-button" type="submit">Отправить</button>
+      </div>
     </form>`;
+
+  detail.querySelectorAll('.attachment-download').forEach(btn => btn.addEventListener('click', () => {
+    downloadConversationFile(btn.dataset.path, btn.dataset.name);
+  }));
 
   detail.querySelector('#admin-save-status')?.addEventListener('click', async () => {
     const status = detail.querySelector('#admin-order-status').value;
@@ -662,11 +836,28 @@ async function adminOrderDetail(order, session){
 
   detail.querySelector('#admin-order-reply')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const body = e.currentTarget.querySelector('textarea').value.trim();
-    if (!body) return;
-    const { error } = await db.from('order_messages').insert({order_id:order.id,sender_id:session.user.id,body,is_system:false});
-    if (error) showToast(error.message);
-    else await loadAdminOrders(order.id);
+    const body=e.currentTarget.querySelector('textarea').value.trim();
+    const filesToSend=Array.from(e.currentTarget.querySelector('input[type="file"]')?.files||[]);
+    if (!body && !filesToSend.length) return;
+    const button=e.currentTarget.querySelector('button[type="submit"]');
+    button.disabled=true;
+    const {data:message,error}=await db.from('order_messages').insert({
+      order_id:order.id,
+      sender_id:session.user.id,
+      body:body || '📎 Файлы',
+      is_system:false
+    }).select().single();
+    if (error){ button.disabled=false; showToast(error.message); return; }
+    try {
+      if (filesToSend.length){
+        await uploadConversationFiles({files:filesToSend,session,orderId:order.id,orderMessageId:message.id});
+      }
+    } catch (fileError){
+      button.disabled=false;
+      showToast(fileError.message || String(fileError));
+      return;
+    }
+    await loadAdminOrders(order.id);
   });
 
   detail.querySelector('#admin-file-form')?.addEventListener('submit', async e => {
@@ -689,7 +880,6 @@ async function adminOrderDetail(order, session){
     await loadAdminOrders(order.id);
   });
 }
-
 async function loadAdminOrders(forceId=null){
   const list = document.querySelector('#admin-orders-list');
   if (!list) return;
@@ -744,6 +934,7 @@ async function initAdmin(){
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'order_messages'},()=>loadAdminOrders())
     .on('postgres_changes',{event:'*',schema:'public',table:'support_tickets'},()=>loadAdminSupport())
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'support_messages'},()=>loadAdminSupport())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'attachments'},()=>{loadAdminOrders();loadAdminSupport();})
     .subscribe();
 }
 
