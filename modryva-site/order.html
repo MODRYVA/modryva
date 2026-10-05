@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MODRYVA — Order a Mod</title>
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <main class="inner-page">
@@ -22,19 +22,19 @@
           <div class="form-grid">
             <div class="form-field">
               <label for="name" data-i18n="name">Твоё имя или ник</label>
-              <input id="name" name="name" autocomplete="name" />
+              <input id="name" name="name" autocomplete="name" required />
             </div>
             <div class="form-field">
               <label for="contact" data-i18n="contact">Твоя почта</label>
-              <input id="contact" name="contact" type="email" autocomplete="email" />
+              <input id="contact" name="contact" type="email" autocomplete="email" readonly />
             </div>
             <div class="form-field">
               <label for="version" data-i18n="version">Версия Minecraft</label>
-              <input id="version" name="version" placeholder="1.21.4 / 26.3" />
+              <input id="version" name="version" placeholder="1.21.4 / 26.3" required />
             </div>
             <div class="form-field">
               <label for="loader" data-i18n="loader">Загрузчик</label>
-              <select id="loader" name="loader">
+              <select id="loader" name="loader" required>
                 <option>Fabric</option>
                 <option>NeoForge</option>
                 <option>Forge</option>
@@ -42,20 +42,30 @@
               </select>
             </div>
             <div class="form-field full">
+              <label for="tier">Сложность / Complexity</label>
+              <select id="tier" name="tier" required>
+                <option value="easy">Лёгкий / Easy</option>
+                <option value="medium" selected>Средний / Medium</option>
+                <option value="difficult">Сложный / Difficult</option>
+              </select>
+              <div class="tier-price" id="tier-price"></div>
+            </div>
+            <div class="form-field full">
               <label for="idea" data-i18n="idea">Опиши мод</label>
-              <textarea id="idea" name="idea" required data-i18n-placeholder="ideaPlaceholder" placeholder="Что должен делать мод? Как он должен выглядеть? Какие функции нужны?"></textarea>
+              <textarea id="idea" name="idea" required maxlength="10000" data-i18n-placeholder="ideaPlaceholder" placeholder="Что должен делать мод? Как он должен выглядеть? Какие функции нужны?"></textarea>
             </div>
           </div>
           <div class="send-row">
             <button class="primary-button" type="submit" data-i18n="send">Отправить идею</button>
-
           </div>
         </form>
 
-        <div class="email-note" data-i18n="orderAccountNote">Заказ привязывается к твоему аккаунту. Ответ MODRYVA появится во «Входящих», а уведомление придёт на твою почту.</div>
+        <div class="email-note">После отправки заказ будет создан со статусом «Ожидает оплату». Платёжный этап подключим отдельно к настоящему платёжному провайдеру.</div>
       </div>
     </section>
   </main>
-  <script src="app.js?v=3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
