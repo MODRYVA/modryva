@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MODRYVA — PayTR</title>
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=9" />
+</head>
+<body>
+  <main class="inner-page">
+    <section class="inner-card payment-card">
+      <header class="inner-header">
+        <a class="brand" href="index.html"><img src="assets/logo.png" alt="MODRYVA logo"><span>MODRYVA</span></a>
+        <a class="back-link" href="inbox.html">← Входящие</a>
+      </header>
+      <div class="inner-body">
+        <h1>Оплата заказа</h1>
+        <p class="lead">Данные банковской карты вводятся только в защищённой форме PayTR. MODRYVA их не получает и не хранит.</p>
+
+        <div id="payment-order-summary" class="payment-summary"></div>
+        <p id="payment-status" class="payment-status"></p>
+
+        <form id="paytr-payer-form" class="payment-details-form">
+          <div class="form-grid">
+            <div class="form-field full">
+              <label for="payer-name">Имя и фамилия плательщика</label>
+              <input id="payer-name" name="payer_name" autocomplete="name" required maxlength="60" />
+            </div>
+            <div class="form-field">
+              <label for="payer-phone">Телефон</label>
+              <input id="payer-phone" name="phone" type="tel" autocomplete="tel" required maxlength="20" placeholder="+90..." />
+            </div>
+            <div class="form-field">
+              <label for="payer-address">Платёжный адрес</label>
+              <input id="payer-address" name="address" autocomplete="street-address" required maxlength="400" />
+            </div>
+          </div>
+          <div class="send-row">
+            <button class="primary-button" type="submit">Перейти к безопасной оплате PayTR</button>
+          </div>
+        </form>
+
+        <div id="paytr-frame-wrap" class="paytr-frame-wrap" hidden>
+          <script src="https://www.paytr.com/js/iframeResizer.min.js"></script>
+          <iframe id="paytriframe" title="PayTR secure payment" frameborder="0" scrolling="no"></iframe>
+        </div>
+
+        <a id="payment-done-link" class="primary-button" href="inbox.html" hidden>Открыть заказ</a>
+      </div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=5"></script>
+  <script src="app.js?v=9"></script>
+</body>
+</html>
