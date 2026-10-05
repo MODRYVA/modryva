@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MODRYVA — Support</title>
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=5" />
+</head>
+<body>
+  <main class="inner-page">
+    <section class="inner-card inbox-card">
+      <header class="inner-header">
+        <a class="brand" href="index.html"><img src="assets/logo.png" alt="MODRYVA logo"><span>MODRYVA</span></a>
+        <div class="header-links">
+          <a class="back-link" href="inbox.html">Входящие</a>
+          <a class="back-link" href="index.html">← На главную</a>
+        </div>
+      </header>
+      <div class="inner-body">
+        <h1>Поддержка MODRYVA</h1>
+        <p class="lead">Если с заказом что-то не так, напиши здесь. История обращения останется в твоём аккаунте.</p>
+
+        <form id="support-new-form" class="support-new-form">
+          <div class="form-field">
+            <label for="support-subject">Тема</label>
+            <input id="support-subject" name="subject" required maxlength="200" placeholder="Например: не получил готовый мод" />
+          </div>
+          <div class="form-field">
+            <label for="support-body">Сообщение</label>
+            <textarea id="support-body" name="body" required maxlength="10000" placeholder="Опиши, что случилось"></textarea>
+          </div>
+          <button class="primary-button" type="submit">Отправить в поддержку</button>
+        </form>
+
+        <div class="support-layout">
+          <aside><div id="support-list" class="orders-list"></div></aside>
+          <section class="conversation-panel" id="support-detail">
+            <div class="conversation-placeholder">Выбери обращение, чтобы открыть переписку.</div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
+</body>
+</html>
