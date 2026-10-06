@@ -24,7 +24,17 @@
             <button class="tab-button" data-admin-tab="support" type="button">Поддержка</button>
           </div>
           <div id="admin-orders-view" class="admin-layout">
-            <aside><div id="admin-orders-list" class="orders-list"></div></aside>
+            <aside>
+              <div class="admin-filter-bar" aria-label="Фильтр заказов">
+                <button class="admin-filter active" data-order-filter="all" type="button">Все <span class="filter-count">0</span></button>
+                <button class="admin-filter" data-order-filter="new" type="button">Новые <span class="filter-count">0</span></button>
+                <button class="admin-filter" data-order-filter="awaiting_payment" type="button">Ждут оплаты <span class="filter-count">0</span></button>
+                <button class="admin-filter" data-order-filter="paid" type="button">Оплачены <span class="filter-count">0</span></button>
+                <button class="admin-filter" data-order-filter="in_progress" type="button">В работе <span class="filter-count">0</span></button>
+                <button class="admin-filter" data-order-filter="ready" type="button">Готовые <span class="filter-count">0</span></button>
+              </div>
+              <div id="admin-orders-list" class="orders-list"></div>
+            </aside>
             <section id="admin-order-detail" class="conversation-panel"><div class="conversation-placeholder">Выбери заказ.</div></section>
           </div>
           <div id="admin-support-view" class="admin-layout" hidden>
