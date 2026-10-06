@@ -15,6 +15,7 @@ const translations = {
     back: '← На главную',
     orderTitle: 'Расскажи нам свою идею',
     orderLead: 'Заполни форму — заказ появится во «Входящих» прямо на сайте.',
+    difficultyAuto: 'Сложность и цену определит MODRYVA после проверки идеи.',
     name: 'Твоё имя или ник', contact: 'Твоя почта', version: 'Версия Minecraft', loader: 'Загрузчик',
     idea: 'Опиши мод', ideaPlaceholder: 'Что должен делать мод? Как он должен выглядеть? Какие функции нужны?',
     send: 'Отправить идею',
@@ -33,6 +34,7 @@ const translations = {
     back: '← Home',
     orderTitle: 'Tell us your idea',
     orderLead: 'Fill out the form — your order will appear in Inbox on the site.',
+    difficultyAuto: 'MODRYVA will assign the difficulty and price after reviewing your idea.',
     name: 'Your name or nickname', contact: 'Your email', version: 'Minecraft version', loader: 'Loader',
     idea: 'Describe your mod', ideaPlaceholder: 'What should the mod do? How should it look? What features do you need?',
     send: 'Send idea',
@@ -319,14 +321,10 @@ async function initOrderForm(){
   if (!session) return;
 
   document.querySelector('#contact').value = session.user.email || '';
-  document.querySelector('#tier')?.addEventListener('change', renderTierPrice);
-  renderTierPrice();
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const data = new FormData(form);
-    const tier = String(data.get('tier') || 'medium');
-    const price = pricingFor(tier);
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
 
@@ -336,10 +334,10 @@ async function initOrderForm(){
       minecraft_version: String(data.get('version') || '').trim(),
       loader: String(data.get('loader') || '').trim(),
       idea: String(data.get('idea') || '').trim(),
-      tier,
-      currency: price.currency,
-      amount_minor: price.amount_minor,
-      status: 'awaiting_payment',
+      tier: 'unassigned',
+      currency: 'USDT',
+      amount_minor: 0,
+      status: 'new',
       payment_status: 'pending'
     };
 
@@ -395,7 +393,18 @@ function statusLabel(status){
   return map[status] || status;
 }
 
+function tierLabel(tier){
+  const ru = getLang() === 'ru';
+  const map = ru
+    ? {unassigned:'Не определена',easy:'Лёгкий',medium:'Средний',difficult:'Сложный'}
+    : {unassigned:'Not assigned',easy:'Easy',medium:'Medium',difficult:'Difficult'};
+  return map[tier] || tier || (ru ? 'Не определена' : 'Not assigned');
+}
+
 function amountLabel(order){
+  if (order.tier === 'unassigned' || Number(order.amount_minor) === 0){
+    return getLang() === 'ru' ? 'Цена после оценки' : 'Price after review';
+  }
   if (order.currency === 'USDT') return (order.amount_minor / 100).toFixed(2).replace(/\.00$/,'') + ' USDT';
   if (order.currency === 'RUB') return (order.amount_minor / 100).toFixed(0) + '₽';
   if (order.currency === 'USD') return '$' + (order.amount_minor / 100).toFixed(2).replace(/\.00$/,'');
@@ -522,6 +531,7 @@ async function renderOrderDetail(order, session){
     <div class="detail-meta">
       <span>Minecraft: ${escapeHtml(order.minecraft_version || '—')}</span>
       <span>Loader: ${escapeHtml(order.loader || '—')}</span>
+      <span>${getLang()==='ru'?'Сложность':'Difficulty'}: ${escapeHtml(tierLabel(order.tier))}</span>
       <span>${escapeHtml(amountLabel(order))}</span>
       <span>${escapeHtml(formatDate(order.created_at))}</span>
     </div>
@@ -794,13 +804,23 @@ async function adminOrderDetail(order, session){
     <div class="detail-meta">
       <span>Minecraft ${escapeHtml(order.minecraft_version || '—')}</span>
       <span>${escapeHtml(order.loader || '—')}</span>
+      <span>Сложность: ${escapeHtml(tierLabel(order.tier))}</span>
       <span>${escapeHtml(amountLabel(order))}</span>
       <span>Payment: ${escapeHtml(order.payment_status)}</span>
     </div>
     <div class="admin-control-row">
+      <label>Сложность и цена
+        <select id="admin-order-tier">
+          <option value="unassigned" ${order.tier==='unassigned'?'selected':''}>Не определена</option>
+          <option value="easy" ${order.tier==='easy'?'selected':''}>Лёгкий — 1 USDT</option>
+          <option value="medium" ${order.tier==='medium'?'selected':''}>Средний — 2 USDT</option>
+          <option value="difficult" ${order.tier==='difficult'?'selected':''}>Сложный — 3 USDT</option>
+        </select>
+      </label>
+      <button class="secondary-button" id="admin-save-tier" type="button">Назначить цену</button>
       <label>Статус
         <select id="admin-order-status">
-          ${['awaiting_payment','paid','in_progress','ready','completed','cancelled','refunded'].map(s=>`<option value="${s}" ${s===order.status?'selected':''}>${statusLabel(s)}</option>`).join('')}
+          ${['new','awaiting_payment','paid','in_progress','ready','completed','cancelled','refunded'].map(s=>`<option value="${s}" ${s===order.status?'selected':''}>${statusLabel(s)}</option>`).join('')}
         </select>
       </label>
       <button class="secondary-button" id="admin-save-status" type="button">Сохранить статус</button>
@@ -830,6 +850,23 @@ async function adminOrderDetail(order, session){
   detail.querySelectorAll('.attachment-download').forEach(btn => btn.addEventListener('click', () => {
     downloadConversationFile(btn.dataset.path, btn.dataset.name);
   }));
+
+  detail.querySelector('#admin-save-tier')?.addEventListener('click', async () => {
+    const tier = detail.querySelector('#admin-order-tier').value;
+    const prices = {unassigned:0,easy:100,medium:200,difficult:300};
+    const update = {
+      tier,
+      currency:'USDT',
+      amount_minor:prices[tier] ?? 0
+    };
+    if (tier !== 'unassigned' && order.status === 'new') update.status = 'awaiting_payment';
+    const { error } = await db.from('orders').update(update).eq('id',order.id);
+    if (error) showToast(error.message);
+    else {
+      showToast(tier === 'unassigned' ? 'Оценка сброшена' : 'Сложность и цена назначены');
+      await loadAdminOrders(order.id);
+    }
+  });
 
   detail.querySelector('#admin-save-status')?.addEventListener('click', async () => {
     const status = detail.querySelector('#admin-order-status').value;
