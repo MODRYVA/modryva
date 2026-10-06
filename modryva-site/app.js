@@ -899,6 +899,7 @@ async function adminOrderDetail(order, session){
         </select>
       </label>
       <button class="secondary-button" id="admin-save-status" type="button">Сохранить статус</button>
+      <button class="danger-button" id="admin-delete-order" type="button">Удалить идею</button>
     </div>
     <div class="files-box">
       <strong>Выдать клиенту .jar</strong>
@@ -941,6 +942,51 @@ async function adminOrderDetail(order, session){
       showToast(tier === 'unassigned' ? 'Оценка сброшена' : 'Сложность и цена назначены');
       await loadAdminOrders(order.id);
     }
+  });
+
+  detail.querySelector('#admin-delete-order')?.addEventListener('click', async () => {
+    const ok = confirm('Удалить эту идею навсегда? Переписка и связанные файлы тоже будут удалены.');
+    if (!ok) return;
+
+    const button = detail.querySelector('#admin-delete-order');
+    button.disabled = true;
+
+    const [{ data: jarFiles }, { data: attachments }] = await Promise.all([
+      db.from('order_files').select('storage_path').eq('order_id', order.id),
+      db.from('attachments').select('storage_path').eq('order_id', order.id)
+    ]);
+
+    const jarPaths = (jarFiles || []).map(x => x.storage_path).filter(Boolean);
+    const attachmentPaths = (attachments || []).map(x => x.storage_path).filter(Boolean);
+
+    if (jarPaths.length){
+      const { error: jarRemoveError } = await db.storage.from('order-files').remove(jarPaths);
+      if (jarRemoveError){
+        button.disabled = false;
+        showToast('Не удалось удалить .jar: ' + jarRemoveError.message);
+        return;
+      }
+    }
+
+    if (attachmentPaths.length){
+      const { error: attachmentRemoveError } = await db.storage.from('conversation-files').remove(attachmentPaths);
+      if (attachmentRemoveError){
+        button.disabled = false;
+        showToast('Не удалось удалить вложения: ' + attachmentRemoveError.message);
+        return;
+      }
+    }
+
+    const { error } = await db.from('orders').delete().eq('id', order.id);
+    if (error){
+      button.disabled = false;
+      showToast(error.message);
+      return;
+    }
+
+    showToast('Идея удалена');
+    history.replaceState(null,'','admin.html');
+    await loadAdminOrders();
   });
 
   detail.querySelector('#admin-save-status')?.addEventListener('click', async () => {
