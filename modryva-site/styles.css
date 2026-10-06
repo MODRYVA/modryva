@@ -1173,3 +1173,56 @@ a { color: inherit; text-decoration: none; }
   }
   .progress-step::after { display:none; }
 }
+
+.account-chip-wrap {
+  position: relative;
+}
+.account-chip-button {
+  cursor: pointer;
+  border: 1px solid #cfe0ff;
+  font: inherit;
+}
+.account-chip-button:hover {
+  background: #e8f1ff;
+}
+.account-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(300px, 82vw);
+  padding: 10px;
+  border: 1px solid #dfe5ed;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 16px 38px rgba(22,33,52,.18);
+}
+.account-popover-email {
+  padding: 9px 10px 11px;
+  color: #4d5664;
+  font-size: 12px;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid #edf0f4;
+  margin-bottom: 5px;
+}
+.account-popover-action {
+  width: 100%;
+  display: block;
+  border: 0;
+  background: transparent;
+  color: #20242b;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: left;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account-popover-action:hover {
+  background: #f2f5f9;
+}
+.account-switch-button {
+  border-color: #bcd4ff;
+}
