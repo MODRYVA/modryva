@@ -10,6 +10,9 @@ const translations = {
     easy: 'Лёгкий мод: 1 USDT', medium: 'Средний мод: 2 USDT', difficult: 'Сложный мод: 3 USDT',
     cta: 'Воплотить идею',
     cryptoOnly: 'Оплата только Крипто-валютой',
+    accountsTitle: 'Аккаунты',
+    addAccount: '＋ Добавить аккаунт',
+    logout: 'Выйти',
     orderPaymentNote: 'Оплата заказа — только криптовалютой. Крипто-платёжный этап подключим отдельно.',
     footerMail: 'Написать нам',
     back: '← На главную',
@@ -29,6 +32,9 @@ const translations = {
     easy: 'Easy Mod: 1 USDT', medium: 'Medium Mod: 2 USDT', difficult: 'Difficult Mod: 3 USDT',
     cta: 'Embody your idea',
     cryptoOnly: 'Payment in cryptocurrency only',
+    accountsTitle: 'Accounts',
+    addAccount: '＋ Add account',
+    logout: 'Sign out',
     orderPaymentNote: 'Orders can be paid only with cryptocurrency. The crypto payment step will be connected separately.',
     footerMail: 'Email us',
     back: '← Home',
@@ -252,7 +258,7 @@ async function initHome(){
 
     accountList.innerHTML =
       (current ? row(current,true) : '') +
-      (others.length ? '<div class="home-other-accounts-label">Другие аккаунты</div>'+others.map(a=>row(a,false)).join('') : '');
+      (others.length ? '<div class="home-other-accounts-label">'+(getLang()==='ru'?'Другие аккаунты':'Other accounts')+'</div>'+others.map(a=>row(a,false)).join('') : '');
 
     accountList.querySelectorAll('[data-account-email]').forEach(btn => {
       btn.addEventListener('click', async () => {
