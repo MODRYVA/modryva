@@ -147,7 +147,7 @@ async function initHome(){
   const profileButton = document.querySelector('.profile-button');
   const session = await currentSession();
   if (cta){
-    cta.href = session ? 'order.html' : 'profile.html?mode=register&next=order.html';
+    cta.href = session ? 'order.html?rev=14' : 'profile.html?mode=register&next=' + encodeURIComponent('order.html?rev=14');
   }
   if (profileButton && session){
     profileButton.title = session.user.email || 'Account';
@@ -321,6 +321,9 @@ async function initOrderForm(){
   if (!session) return;
 
   document.querySelector('#contact').value = session.user.email || '';
+
+  const legacyTier = document.querySelector('#tier');
+  if (legacyTier) legacyTier.closest('.form-field')?.remove();
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
