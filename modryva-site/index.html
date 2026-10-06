@@ -40,12 +40,21 @@
                 <path d="M24 32l6 6 11-13"></path>
               </svg>
             </a>
-            <a class="profile-button" href="profile.html" aria-label="Profile">
-              <svg class="profile-icon" viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="20" r="10"></circle>
-                <path d="M16 48 C16 37 23 30 32 30 C41 30 48 37 48 48"></path>
-              </svg>
-            </a>
+            <div class="home-account-wrap">
+              <button class="profile-button" id="home-profile-button" type="button" aria-label="Profile" aria-expanded="false">
+                <svg class="profile-icon" viewBox="0 0 64 64" aria-hidden="true">
+                  <circle cx="32" cy="20" r="10"></circle>
+                  <path d="M16 48 C16 37 23 30 32 30 C41 30 48 37 48 48"></path>
+                </svg>
+              </button>
+              <div class="home-account-menu" id="home-account-menu" hidden>
+                <div class="home-account-title">Аккаунты</div>
+                <div id="home-account-list" class="home-account-list"></div>
+                <div class="home-account-divider"></div>
+                <button class="home-account-action" id="home-add-account" type="button">＋ Добавить аккаунт</button>
+                <button class="home-account-action logout-action" id="home-logout" type="button">Выйти</button>
+              </div>
+            </div>
           </div>
         </header>
 
