@@ -117,6 +117,32 @@ async function currentSession(){
   return data.session || null;
 }
 
+async function switchGoogleAccount(next='index.html'){
+  const session = await currentSession();
+  if (session?.user?.email){
+    const recent = JSON.parse(localStorage.getItem('modryva-recent-accounts') || '[]');
+    const updated = [session.user.email, ...recent.filter(x => x !== session.user.email)].slice(0,5);
+    localStorage.setItem('modryva-recent-accounts', JSON.stringify(updated));
+  }
+
+  localStorage.setItem('modryva-auth-next', next);
+  await db.auth.signOut({ scope:'local' });
+
+  const redirectTo = new URL('auth-callback.html', location.href).href;
+  const { error } = await db.auth.signInWithOAuth({
+    provider:'google',
+    options:{
+      redirectTo,
+      queryParams:{
+        prompt:'select_account',
+        access_type:'offline'
+      }
+    }
+  });
+
+  if (error) showToast(error.message);
+}
+
 async function requireAuth(next = pageFile() + location.search){
   const session = await currentSession();
   if (!session){
@@ -196,6 +222,9 @@ async function initProfile(){
     document.querySelector('#signed-in-email').textContent = session.user.email || '';
     const adminLink = document.querySelector('#admin-link');
     if (adminLink && isAdminEmail(session.user.email)) adminLink.hidden = false;
+    document.querySelector('#switch-account-button')?.addEventListener('click', async () => {
+      await switchGoogleAccount('index.html');
+    });
     document.querySelector('#logout-button')?.addEventListener('click', async () => {
       await db.auth.signOut();
       location.href = 'index.html';
@@ -252,6 +281,11 @@ async function initAuthCallback(){
   } catch {}
 
   const session = await currentSession();
+  if (session?.user?.email){
+    const recent = JSON.parse(localStorage.getItem('modryva-recent-accounts') || '[]');
+    const updated = [session.user.email, ...recent.filter(x => x !== session.user.email)].slice(0,5);
+    localStorage.setItem('modryva-recent-accounts', JSON.stringify(updated));
+  }
   const loading = document.querySelector('#callback-loading');
   const passwordBox = document.querySelector('#callback-password');
   const errorBox = document.querySelector('#callback-error');
@@ -697,7 +731,31 @@ async function initInbox(){
   if (!document.querySelector('#orders-list')) return;
   const session = await requireAuth('inbox.html');
   if (!session) return;
-  document.querySelector('#account-chip').textContent = session.user.email || '';
+  const accountChip = document.querySelector('#account-chip');
+  const accountPopover = document.querySelector('#account-popover');
+  const popoverEmail = document.querySelector('#account-popover-email');
+  if (accountChip) accountChip.textContent = session.user.email || '';
+  if (popoverEmail) popoverEmail.textContent = session.user.email || '';
+
+  accountChip?.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = accountPopover?.hidden !== false;
+    if (accountPopover) accountPopover.hidden = !open;
+    accountChip.setAttribute('aria-expanded', String(open));
+  });
+
+  document.querySelector('#inbox-switch-account')?.addEventListener('click', async () => {
+    await switchGoogleAccount('inbox.html');
+  });
+
+  document.addEventListener('click', e => {
+    if (!accountPopover || accountPopover.hidden) return;
+    if (!e.target.closest('.account-chip-wrap')){
+      accountPopover.hidden = true;
+      accountChip?.setAttribute('aria-expanded','false');
+    }
+  });
+
   await loadInbox();
 
   db.channel('modryva-inbox-' + session.user.id)
