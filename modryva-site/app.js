@@ -123,6 +123,131 @@ async function currentSession(){
   return data.session || null;
 }
 
+
+let googleIdentityPromise = null;
+
+function ensureGoogleIdentity(){
+  if (window.google?.accounts?.id) return Promise.resolve(window.google);
+  if (googleIdentityPromise) return googleIdentityPromise;
+
+  googleIdentityPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-modryva-google-identity]');
+    if (existing){
+      existing.addEventListener('load', () => resolve(window.google), {once:true});
+      existing.addEventListener('error', () => reject(new Error('Google Identity failed to load')), {once:true});
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.dataset.modryvaGoogleIdentity = '1';
+    script.onload = () => resolve(window.google);
+    script.onerror = () => reject(new Error('Google Identity failed to load'));
+    document.head.appendChild(script);
+  });
+
+  return googleIdentityPromise;
+}
+
+function closeGooglePicker(){
+  document.querySelector('#modryva-google-picker')?.remove();
+}
+
+async function handleGoogleCredential(response, next='index.html'){
+  if (!response?.credential){
+    showToast(getLang()==='ru' ? 'Google не вернул данные аккаунта.' : 'Google did not return account credentials.');
+    return;
+  }
+
+  const status = document.querySelector('#google-picker-status');
+  if (status) status.textContent = getLang()==='ru' ? 'Входим в MODRYVA…' : 'Signing in to MODRYVA…';
+
+  const { data, error } = await db.auth.signInWithIdToken({
+    provider:'google',
+    token:response.credential
+  });
+
+  if (error){
+    if (status) status.textContent = error.message;
+    showToast(error.message);
+    return;
+  }
+
+  rememberAccount(data?.session || await currentSession());
+  localStorage.setItem('modryva-auth-next', next);
+  closeGooglePicker();
+  location.href = 'auth-callback.html?direct=1';
+}
+
+async function openGoogleIdentityPicker(next='index.html', emailHint=''){
+  localStorage.setItem('modryva-auth-next', next);
+
+  let googleApi;
+  try {
+    googleApi = await ensureGoogleIdentity();
+  } catch {
+    showToast(getLang()==='ru'
+      ? 'Не удалось загрузить вход Google. Попробуй ещё раз.'
+      : 'Could not load Google sign-in. Please try again.');
+    return;
+  }
+
+  closeGooglePicker();
+  const overlay = document.createElement('div');
+  overlay.id = 'modryva-google-picker';
+  overlay.className = 'google-picker-overlay';
+  overlay.innerHTML = `
+    <div class="google-picker-card" role="dialog" aria-modal="true" aria-label="Google account">
+      <button class="google-picker-close" type="button" aria-label="Close">×</button>
+      <img class="google-picker-logo" src="assets/logo.png" alt="">
+      <h2>${getLang()==='ru'?'Выберите Google-аккаунт':'Choose a Google account'}</h2>
+      <p>${emailHint
+        ? (getLang()==='ru'?'Переключение на '+escapeHtml(emailHint):'Switch to '+escapeHtml(emailHint))
+        : (getLang()==='ru'?'Вход напрямую через Google — без страницы Supabase.':'Sign in directly with Google — no Supabase page.')}</p>
+      <div id="google-picker-button" class="google-picker-button"></div>
+      <div id="google-picker-status" class="google-picker-status"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('.google-picker-close')?.addEventListener('click', closeGooglePicker);
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeGooglePicker();
+  });
+
+  const clientId = config.googleClientId;
+  if (!clientId){
+    showToast('Google Client ID is missing.');
+    return;
+  }
+
+  googleApi.accounts.id.initialize({
+    client_id: clientId,
+    callback: credential => handleGoogleCredential(credential, next),
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    context: 'signin',
+    itp_support: true,
+    ...(emailHint ? {login_hint: emailHint} : {})
+  });
+
+  const buttonHost = overlay.querySelector('#google-picker-button');
+  googleApi.accounts.id.renderButton(buttonHost, {
+    type:'standard',
+    theme:'outline',
+    size:'large',
+    text:'continue_with',
+    shape:'rectangular',
+    logo_alignment:'left',
+    width:320
+  });
+
+  // Also ask Google to surface its account chooser when the browser allows it.
+  try { googleApi.accounts.id.prompt(); } catch {}
+}
+
 function getRememberedAccounts(){
   let raw = [];
   try { raw = JSON.parse(localStorage.getItem('modryva-recent-accounts') || '[]'); } catch {}
@@ -160,23 +285,7 @@ function accountAvatarHtml(account){
 async function switchGoogleAccount(next='index.html', emailHint=''){
   const session = await currentSession();
   rememberAccount(session);
-
-  localStorage.setItem('modryva-auth-next', next);
-  await db.auth.signOut({ scope:'local' });
-
-  const redirectTo = new URL('auth-callback.html', location.href).href;
-  const queryParams = {
-    prompt:'select_account',
-    access_type:'offline'
-  };
-  if (emailHint) queryParams.login_hint = emailHint;
-
-  const { error } = await db.auth.signInWithOAuth({
-    provider:'google',
-    options:{ redirectTo, queryParams }
-  });
-
-  if (error) showToast(error.message);
+  await openGoogleIdentityPicker(next, emailHint);
 }
 
 
@@ -355,19 +464,7 @@ async function initProfile(){
   });
 
   document.querySelector('#google-auth')?.addEventListener('click', async () => {
-    localStorage.setItem('modryva-auth-next', next);
-    const redirectTo = new URL('auth-callback.html', location.href).href;
-    const { error } = await db.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-        queryParams: {
-          prompt: 'select_account',
-          access_type: 'offline'
-        }
-      }
-    });
-    if (error) showToast(error.message);
+    await openGoogleIdentityPicker(next);
   });
 
   document.querySelector('#password-login-form')?.addEventListener('submit', async e => {
@@ -404,7 +501,7 @@ async function initAuthCallback(){
   if (!session){
     loading.hidden = true;
     errorBox.hidden = false;
-    errorText.textContent = 'Google не вернул активный сеанс. Попробуй регистрацию ещё раз.';
+    errorText.textContent = 'Google не вернул активный сеанс. Попробуй вход ещё раз.';
     return;
   }
 
