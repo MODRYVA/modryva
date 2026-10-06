@@ -23,7 +23,14 @@
             <h1 data-i18n="inboxTitle">Входящие</h1>
             <p class="lead" data-i18n="inboxLead">Здесь твои заказы, ответы MODRYVA и готовые файлы .jar.</p>
           </div>
-          <span class="account-chip" id="account-chip"></span>
+          <div class="account-chip-wrap">
+            <button class="account-chip account-chip-button" id="account-chip" type="button" aria-expanded="false"></button>
+            <div class="account-popover" id="account-popover" hidden>
+              <div class="account-popover-email" id="account-popover-email"></div>
+              <button class="account-popover-action" id="inbox-switch-account" type="button">Сменить аккаунт</button>
+              <a class="account-popover-action" href="profile.html">Аккаунт MODRYVA</a>
+            </div>
+          </div>
         </div>
 
         <div class="inbox-layout">
