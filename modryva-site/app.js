@@ -117,31 +117,62 @@ async function currentSession(){
   return data.session || null;
 }
 
-async function switchGoogleAccount(next='index.html'){
-  const session = await currentSession();
-  if (session?.user?.email){
-    const recent = JSON.parse(localStorage.getItem('modryva-recent-accounts') || '[]');
-    const updated = [session.user.email, ...recent.filter(x => x !== session.user.email)].slice(0,5);
-    localStorage.setItem('modryva-recent-accounts', JSON.stringify(updated));
+function getRememberedAccounts(){
+  let raw = [];
+  try { raw = JSON.parse(localStorage.getItem('modryva-recent-accounts') || '[]'); } catch {}
+  return (Array.isArray(raw) ? raw : []).map(item => {
+    if (typeof item === 'string') return {email:item,name:item.split('@')[0],avatar:''};
+    return {
+      email:String(item?.email || ''),
+      name:String(item?.name || item?.email?.split('@')?.[0] || ''),
+      avatar:String(item?.avatar || '')
+    };
+  }).filter(x => x.email);
+}
+
+function rememberAccount(session){
+  if (!session?.user?.email) return;
+  const meta = session.user.user_metadata || {};
+  const account = {
+    email: session.user.email,
+    name: meta.full_name || meta.name || session.user.email.split('@')[0],
+    avatar: meta.avatar_url || meta.picture || ''
+  };
+  const recent = getRememberedAccounts();
+  const updated = [account, ...recent.filter(x => x.email !== account.email)].slice(0,8);
+  localStorage.setItem('modryva-recent-accounts', JSON.stringify(updated));
+}
+
+function accountAvatarHtml(account){
+  if (account.avatar){
+    return '<img class="account-menu-avatar-img" src="'+escapeHtml(account.avatar)+'" alt="">';
   }
+  const letter = (account.name || account.email || '?').trim().charAt(0).toUpperCase() || '?';
+  return '<span class="account-menu-avatar-fallback">'+escapeHtml(letter)+'</span>';
+}
+
+async function switchGoogleAccount(next='index.html', emailHint=''){
+  const session = await currentSession();
+  rememberAccount(session);
 
   localStorage.setItem('modryva-auth-next', next);
   await db.auth.signOut({ scope:'local' });
 
   const redirectTo = new URL('auth-callback.html', location.href).href;
+  const queryParams = {
+    prompt:'select_account',
+    access_type:'offline'
+  };
+  if (emailHint) queryParams.login_hint = emailHint;
+
   const { error } = await db.auth.signInWithOAuth({
     provider:'google',
-    options:{
-      redirectTo,
-      queryParams:{
-        prompt:'select_account',
-        access_type:'offline'
-      }
-    }
+    options:{ redirectTo, queryParams }
   });
 
   if (error) showToast(error.message);
 }
+
 
 async function requireAuth(next = pageFile() + location.search){
   const session = await currentSession();
@@ -170,18 +201,94 @@ async function updateInboxBadge(){
 
 async function initHome(){
   const cta = document.querySelector('.cta');
-  const profileButton = document.querySelector('.profile-button');
+  const profileButton = document.querySelector('#home-profile-button') || document.querySelector('.profile-button');
+  const accountMenu = document.querySelector('#home-account-menu');
+  const accountList = document.querySelector('#home-account-list');
   const session = await currentSession();
+
   if (cta){
     cta.href = session ? 'order.html?rev=14' : 'profile.html?mode=register&next=' + encodeURIComponent('order.html?rev=14');
   }
-  if (profileButton && session){
-    profileButton.title = session.user.email || 'Account';
+
+  if (session) rememberAccount(session);
+
+  if (profileButton){
+    profileButton.title = session?.user?.email || 'Account';
+    profileButton.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!session){
+        location.href='profile.html?mode=register';
+        return;
+      }
+      const open = accountMenu?.hidden !== false;
+      if (accountMenu) accountMenu.hidden = !open;
+      profileButton.setAttribute('aria-expanded', String(open));
+    });
   }
+
+  if (session && accountList){
+    const currentEmail = session.user.email || '';
+    const remembered = getRememberedAccounts();
+    if (!remembered.some(a=>a.email===currentEmail)){
+      remembered.unshift({
+        email:currentEmail,
+        name:session.user.user_metadata?.full_name || session.user.user_metadata?.name || currentEmail.split('@')[0],
+        avatar:session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || ''
+      });
+    }
+
+    const current = remembered.find(a=>a.email===currentEmail);
+    const others = remembered.filter(a=>a.email!==currentEmail);
+
+    const row = (account, active=false) => `
+      <button class="home-account-row ${active?'active':''}" type="button" data-account-email="${escapeHtml(account.email)}">
+        <span class="account-menu-avatar">${accountAvatarHtml(account)}</span>
+        <span class="home-account-copy">
+          <strong>${escapeHtml(account.name || account.email.split('@')[0])}</strong>
+          <small>${escapeHtml(account.email)}</small>
+        </span>
+        ${active?'<span class="home-account-check">✓</span>':''}
+      </button>`;
+
+    accountList.innerHTML =
+      (current ? row(current,true) : '') +
+      (others.length ? '<div class="home-other-accounts-label">Другие аккаунты</div>'+others.map(a=>row(a,false)).join('') : '');
+
+    accountList.querySelectorAll('[data-account-email]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const email = btn.dataset.accountEmail || '';
+        if (email === currentEmail){
+          if (accountMenu) accountMenu.hidden = true;
+          profileButton?.setAttribute('aria-expanded','false');
+          return;
+        }
+        await switchGoogleAccount('index.html', email);
+      });
+    });
+  }
+
+  document.querySelector('#home-add-account')?.addEventListener('click', async () => {
+    await switchGoogleAccount('index.html');
+  });
+
+  document.querySelector('#home-logout')?.addEventListener('click', async () => {
+    await db.auth.signOut();
+    location.href='index.html';
+  });
+
+  document.addEventListener('click', e => {
+    if (!accountMenu || accountMenu.hidden) return;
+    if (!e.target.closest('.home-account-wrap')){
+      accountMenu.hidden = true;
+      profileButton?.setAttribute('aria-expanded','false');
+    }
+  });
+
   const adminTopButton = document.querySelector('#admin-top-button');
   if (adminTopButton && session && isAdminEmail(session.user.email)) adminTopButton.hidden = false;
   await updateInboxBadge();
 }
+
 
 function renderProfileMode(mode){
   const title = document.querySelector('[data-account-title]');
@@ -281,11 +388,7 @@ async function initAuthCallback(){
   } catch {}
 
   const session = await currentSession();
-  if (session?.user?.email){
-    const recent = JSON.parse(localStorage.getItem('modryva-recent-accounts') || '[]');
-    const updated = [session.user.email, ...recent.filter(x => x !== session.user.email)].slice(0,5);
-    localStorage.setItem('modryva-recent-accounts', JSON.stringify(updated));
-  }
+  rememberAccount(session);
   const loading = document.querySelector('#callback-loading');
   const passwordBox = document.querySelector('#callback-password');
   const errorBox = document.querySelector('#callback-error');
