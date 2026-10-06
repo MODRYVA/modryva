@@ -414,6 +414,52 @@ function amountLabel(order){
   return order.amount_minor + ' ' + order.currency;
 }
 
+function orderProgressHtml(order){
+  const ru = getLang() === 'ru';
+  const steps = ru
+    ? ['Идея отправлена','Оценено','Ожидает оплату','Оплачено','В работе','Готово']
+    : ['Idea sent','Reviewed','Awaiting payment','Paid','In progress','Ready'];
+
+  const progressIndex = {
+    new:0,
+    awaiting_payment:2,
+    paid:3,
+    in_progress:4,
+    ready:5,
+    completed:5,
+    refunded:3
+  }[order.status] ?? 0;
+
+  if (order.status === 'cancelled'){
+    return `<div class="order-progress cancelled-progress"><span>✕</span><strong>${ru?'Заказ отменён':'Order cancelled'}</strong></div>`;
+  }
+
+  return `<div class="order-progress">${steps.map((label,index)=>{
+    const done=index<progressIndex;
+    const active=index===progressIndex;
+    return `<div class="progress-step ${done?'done':''} ${active?'active':''}">
+      <span class="progress-dot">${done?'✓':index+1}</span>
+      <span class="progress-label">${escapeHtml(label)}</span>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function adminOrderCardHtml(order, active=false, unread=0){
+  return `<a class="order-card compact-card ${active ? 'active' : ''}" href="admin.html?order=${encodeURIComponent(order.id)}">
+    <div class="order-card-top">
+      <div>
+        <div class="order-id">${escapeHtml(order.order_number)}</div>
+        <h2>${escapeHtml((order.idea || '').slice(0,55))}${(order.idea || '').length > 55 ? '…' : ''}</h2>
+      </div>
+      <div class="card-status-stack">
+        ${unread ? '<span class="admin-unread-badge">'+Math.min(unread,99)+'</span>' : ''}
+        <span class="status-badge status-${escapeHtml(order.status)}">${escapeHtml(statusLabel(order.status))}</span>
+      </div>
+    </div>
+    <div class="order-meta"><span>${escapeHtml(order.minecraft_version || '—')}</span><span>${escapeHtml(amountLabel(order))}</span></div>
+  </a>`;
+}
+
 function orderCardHtml(order, active=false){
   return `<a class="order-card compact-card ${active ? 'active' : ''}" href="inbox.html?order=${encodeURIComponent(order.id)}">
     <div class="order-card-top">
@@ -531,6 +577,7 @@ async function renderOrderDetail(order, session){
       </div>
       <span class="status-badge status-${escapeHtml(order.status)}">${escapeHtml(statusLabel(order.status))}</span>
     </div>
+    ${orderProgressHtml(order)}
     <div class="detail-meta">
       <span>Minecraft: ${escapeHtml(order.minecraft_version || '—')}</span>
       <span>Loader: ${escapeHtml(order.loader || '—')}</span>
@@ -539,6 +586,9 @@ async function renderOrderDetail(order, session){
       <span>${escapeHtml(formatDate(order.created_at))}</span>
     </div>
     ${filesHtml ? '<div class="files-box"><strong>Готовые файлы</strong><div class="files-row">'+filesHtml+'</div></div>' : ''}
+    ${(['new','awaiting_payment'].includes(order.status) && order.payment_status !== 'paid')
+      ? '<div class="order-actions"><button class="danger-button" id="cancel-order-button" type="button">'+(getLang()==='ru'?'Отменить заказ':'Cancel order')+'</button></div>'
+      : ''}
     <div class="chat-thread" id="chat-thread">${messagesHtml || '<p class="muted">Сообщений пока нет.</p>'}</div>
     <form class="chat-form" id="order-message-form">
       <textarea id="order-message-body" maxlength="10000" placeholder="Напиши MODRYVA…"></textarea>
@@ -555,6 +605,23 @@ async function renderOrderDetail(order, session){
   detail.querySelectorAll('.attachment-download').forEach(btn => btn.addEventListener('click', () => {
     downloadConversationFile(btn.dataset.path, btn.dataset.name);
   }));
+
+  detail.querySelector('#cancel-order-button')?.addEventListener('click', async () => {
+    const ok = confirm(getLang()==='ru'
+      ? 'Отменить этот заказ? После отмены его нельзя будет оплатить.'
+      : 'Cancel this order? It will no longer be available for payment.');
+    if (!ok) return;
+    const button = detail.querySelector('#cancel-order-button');
+    button.disabled = true;
+    const { data, error } = await db.rpc('cancel_my_order', { p_order_id: order.id });
+    if (error || data !== true){
+      button.disabled = false;
+      showToast(error?.message || (getLang()==='ru'?'Не удалось отменить заказ.':'Could not cancel order.'));
+      return;
+    }
+    showToast(getLang()==='ru'?'Заказ отменён':'Order cancelled');
+    await loadInbox(order.id);
+  });
 
   detail.querySelector('#order-message-form')?.addEventListener('submit', async e => {
     e.preventDefault();
@@ -641,10 +708,15 @@ async function initInbox(){
     .subscribe();
 }
 
-function supportTicketCard(t, active=false, hrefBase='support.html'){
+function supportTicketCard(t, active=false, hrefBase='support.html', unread=0){
   return `<a class="order-card compact-card ${active ? 'active' : ''}" href="${hrefBase}?ticket=${encodeURIComponent(t.id)}">
-    <div class="order-id">${escapeHtml(t.ticket_number)}</div>
-    <h2>${escapeHtml(t.subject)}</h2>
+    <div class="order-card-top">
+      <div>
+        <div class="order-id">${escapeHtml(t.ticket_number)}</div>
+        <h2>${escapeHtml(t.subject)}</h2>
+      </div>
+      ${unread ? '<span class="admin-unread-badge">'+Math.min(unread,99)+'</span>' : ''}
+    </div>
     <div class="order-meta"><span>${escapeHtml(t.status)}</span><span>${escapeHtml(formatDate(t.created_at))}</span></div>
   </a>`;
 }
@@ -924,32 +996,97 @@ async function adminOrderDetail(order, session){
     await loadAdminOrders(order.id);
   });
 }
+let adminOrderFilter = 'all';
+
 async function loadAdminOrders(forceId=null){
   const list = document.querySelector('#admin-orders-list');
   if (!list) return;
   const session = await currentSession();
+  if (!session) return;
+
   const { data: orders, error } = await db.from('orders').select('*').order('created_at',{ascending:false});
   if (error){ showToast(error.message); return; }
-  if (!orders?.length){ list.innerHTML='<p class="muted">Заказов пока нет.</p>'; return; }
+
+  const filtered = adminOrderFilter === 'all'
+    ? (orders || [])
+    : (orders || []).filter(o => o.status === adminOrderFilter);
+
+  document.querySelectorAll('[data-order-filter]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.orderFilter === adminOrderFilter);
+    const count = btn.dataset.orderFilter === 'all'
+      ? (orders || []).length
+      : (orders || []).filter(o=>o.status===btn.dataset.orderFilter).length;
+    const counter = btn.querySelector('.filter-count');
+    if (counter) counter.textContent = String(count);
+  });
+
+  if (!filtered.length){
+    list.innerHTML='<p class="muted">В этой категории заказов пока нет.</p>';
+    document.querySelector('#admin-order-detail').innerHTML='<div class="conversation-placeholder">Выбери другую категорию.</div>';
+    return;
+  }
+
   const q = forceId || new URLSearchParams(location.search).get('order');
-  const selected = orders.find(o=>o.id===q) || orders[0];
-  list.innerHTML = orders.map(o => {
-    const h = orderCardHtml(o,o.id===selected.id);
-    return h.replace('href="inbox.html?order=','href="admin.html?order=');
-  }).join('');
+  const selected = filtered.find(o=>o.id===q) || filtered[0];
+
+  await db.from('order_messages')
+    .update({admin_read_at:new Date().toISOString()})
+    .eq('order_id',selected.id)
+    .eq('is_system',false)
+    .neq('sender_id',session.user.id)
+    .is('admin_read_at',null);
+
+  const { data: unreadRows } = await db.from('order_messages')
+    .select('order_id,sender_id')
+    .eq('is_system',false)
+    .is('admin_read_at',null);
+
+  const unreadMap = {};
+  (unreadRows || []).forEach(m => {
+    if (m.sender_id && m.sender_id !== session.user.id){
+      unreadMap[m.order_id] = (unreadMap[m.order_id] || 0) + 1;
+    }
+  });
+
+  list.innerHTML = filtered.map(o => adminOrderCardHtml(o,o.id===selected.id,unreadMap[o.id]||0)).join('');
   await adminOrderDetail(selected,session);
 }
+
 
 async function loadAdminSupport(forceId=null){
   const list = document.querySelector('#admin-support-list');
   if (!list) return;
   const session = await currentSession();
+  if (!session) return;
+
   const { data:tickets,error } = await db.from('support_tickets').select('*').order('created_at',{ascending:false});
   if (error){ showToast(error.message); return; }
-  if (!tickets?.length){ list.innerHTML='<p class="muted">Обращений пока нет.</p>'; return; }
+  if (!tickets?.length){
+    list.innerHTML='<p class="muted">Обращений пока нет.</p>';
+    return;
+  }
+
   const q=forceId || new URLSearchParams(location.search).get('ticket');
   const selected=tickets.find(t=>t.id===q)||tickets[0];
-  list.innerHTML=tickets.map(t=>supportTicketCard(t,t.id===selected.id,'admin.html')).join('');
+
+  await db.from('support_messages')
+    .update({admin_read_at:new Date().toISOString()})
+    .eq('ticket_id',selected.id)
+    .neq('sender_id',session.user.id)
+    .is('admin_read_at',null);
+
+  const { data: unreadRows } = await db.from('support_messages')
+    .select('ticket_id,sender_id')
+    .is('admin_read_at',null);
+
+  const unreadMap={};
+  (unreadRows||[]).forEach(m=>{
+    if(m.sender_id && m.sender_id!==session.user.id){
+      unreadMap[m.ticket_id]=(unreadMap[m.ticket_id]||0)+1;
+    }
+  });
+
+  list.innerHTML=tickets.map(t=>supportTicketCard(t,t.id===selected.id,'admin.html',unreadMap[t.id]||0)).join('');
   await renderSupportDetail(selected,session,true);
 }
 
@@ -971,6 +1108,12 @@ async function initAdmin(){
     const tab=btn.dataset.adminTab;
     document.querySelector('#admin-orders-view').hidden=tab!=='orders';
     document.querySelector('#admin-support-view').hidden=tab!=='support';
+  }));
+
+  document.querySelectorAll('[data-order-filter]').forEach(btn => btn.addEventListener('click', async () => {
+    adminOrderFilter = btn.dataset.orderFilter || 'all';
+    history.replaceState(null,'','admin.html');
+    await loadAdminOrders();
   }));
 
   await Promise.all([loadAdminOrders(),loadAdminSupport()]);
