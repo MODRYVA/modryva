@@ -1494,3 +1494,15 @@ a { color: inherit; text-decoration: none; }
     width: 100%;
   }
 }
+
+.payment-order-warning {
+  margin: 12px 0 8px;
+  padding: 12px 13px;
+  border: 1px solid #f2b6b2;
+  border-radius: 11px;
+  background: #fff2f1;
+  color: #c62828;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.4;
+}
