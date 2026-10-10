@@ -827,8 +827,8 @@ async function renderOrderDetail(order, session){
           <div class="payment-box-title">${getLang()==='ru'?'Оплата через DonationAlerts':'Pay with DonationAlerts'}</div>
           <div class="payment-box-amount">${escapeHtml(amountLabel(order))}</div>
           <p>${getLang()==='ru'
-            ? 'Перед оплатой скопируй код заказа и вставь его в поле сообщения DonationAlerts. Сумма и валюта должны совпадать точно.'
-            : 'Before paying, copy the order code and paste it into the DonationAlerts message field. The amount and currency must match exactly.'}</p>
+            ? 'Перед оплатой скопируй код заказа и вставь его в поле сообщения DonationAlerts. Можно заплатить эту сумму или больше — всё сверху будет считаться чаевыми.'
+            : 'Before paying, copy the order code and paste it into the DonationAlerts message field. You can pay this amount or more — anything above it will count as a tip.'}</p>
           <div class="payment-code-row">
             <code id="payment-order-code">${escapeHtml(order.order_number)}</code>
             <button class="secondary-button compact-payment-button" id="copy-payment-code" type="button">${getLang()==='ru'?'Скопировать код':'Copy code'}</button>
@@ -918,8 +918,8 @@ async function renderOrderDetail(order, session){
           ? 'Код заказа не совпадает.'
           : 'The order code does not match.',
         DONATION_NOT_FOUND: getLang()==='ru'
-          ? 'Платёж пока не найден. Проверь сумму, валюту EUR и сообщение с кодом заказа.'
-          : 'Payment not found yet. Check the amount, EUR currency and the message containing your order code.'
+          ? 'Платёж пока не найден. Проверь, что сумма не меньше цены заказа, валюта EUR, а в сообщении указан код заказа.'
+          : 'Payment not found yet. Check that the amount is at least the order price, the currency is EUR, and the message contains your order code.'
       };
       if (status) status.textContent = messages[err] || (getLang()==='ru'?'Не удалось подтвердить оплату.':'Could not confirm payment.');
       return;
