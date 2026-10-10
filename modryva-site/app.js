@@ -826,6 +826,9 @@ async function renderOrderDetail(order, session){
       ? `<div class="donationalerts-payment-box">
           <div class="payment-box-title">${getLang()==='ru'?'Оплата через DonationAlerts':'Pay with DonationAlerts'}</div>
           <div class="payment-box-amount">${escapeHtml(amountLabel(order))}</div>
+          <div class="payment-order-warning">${getLang()==='ru'
+            ? '⚠ Когда вы платите, в сообщении ОБЯЗАТЕЛЬНО укажите номер заказа!!!'
+            : '⚠ When you pay, you MUST include the order number in the message!!!'}</div>
           <p>${getLang()==='ru'
             ? 'Перед оплатой скопируй код заказа и вставь его в поле сообщения DonationAlerts. Можно заплатить эту сумму или больше — всё сверху будет считаться чаевыми.'
             : 'Before paying, copy the order code and paste it into the DonationAlerts message field. You can pay this amount or more — anything above it will count as a tip.'}</p>
