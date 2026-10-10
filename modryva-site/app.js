@@ -7,13 +7,11 @@ const translations = {
     langCode: 'РУ', flag: '🇷🇺',
     heroTitle: 'Нужно создать мод на заказ для Minecraft? Сделаем быстро и качественно!',
     tagline: 'You Imagine It. We Build It.',
-    easy: 'Лёгкий мод: 1 USDT', medium: 'Средний мод: 2 USDT', difficult: 'Сложный мод: 3 USDT',
+    easy: 'Лёгкий мод: 1€', medium: 'Средний мод: 2€', difficult: 'Сложный мод: 3€',
     cta: 'Воплотить идею',
-    cryptoOnly: 'Оплата только Крипто-валютой',
     accountsTitle: 'Аккаунты',
     addAccount: '＋ Добавить аккаунт',
     logout: 'Выйти',
-    orderPaymentNote: 'Оплата заказа — только криптовалютой. Крипто-платёжный этап подключим отдельно.',
     footerMail: 'Написать нам',
     back: '← На главную',
     orderTitle: 'Расскажи нам свою идею',
@@ -29,13 +27,11 @@ const translations = {
     langCode: 'EN', flag: '🇺🇸',
     heroTitle: 'Need a custom Minecraft mod? We’ll create it quickly and to a high quality!',
     tagline: 'You Imagine It. We Build It.',
-    easy: 'Easy Mod: 1 USDT', medium: 'Medium Mod: 2 USDT', difficult: 'Difficult Mod: 3 USDT',
+    easy: 'Easy Mod: 1€', medium: 'Medium Mod: 2€', difficult: 'Difficult Mod: 3€',
     cta: 'Embody your idea',
-    cryptoOnly: 'Payment in cryptocurrency only',
     accountsTitle: 'Accounts',
     addAccount: '＋ Add account',
     logout: 'Sign out',
-    orderPaymentNote: 'Orders can be paid only with cryptocurrency. The crypto payment step will be connected separately.',
     footerMail: 'Email us',
     back: '← Home',
     orderTitle: 'Tell us your idea',
@@ -540,9 +536,9 @@ async function initAuthCallback(){
 function pricingFor(tier){
   const m = {easy:100, medium:200, difficult:300};
   return {
-    currency:'USDT',
+    currency:'EUR',
     amount_minor:m[tier],
-    label:{easy:'1 USDT',medium:'2 USDT',difficult:'3 USDT'}[tier]
+    label:{easy:'1€',medium:'2€',difficult:'3€'}[tier]
   };
 }
 
@@ -578,7 +574,7 @@ async function initOrderForm(){
       loader: String(data.get('loader') || '').trim(),
       idea: String(data.get('idea') || '').trim(),
       tier: 'unassigned',
-      currency: 'USDT',
+      currency: 'EUR',
       amount_minor: 0,
       status: 'new',
       payment_status: 'pending'
@@ -648,7 +644,7 @@ function amountLabel(order){
   if (order.tier === 'unassigned' || Number(order.amount_minor) === 0){
     return getLang() === 'ru' ? 'Цена после оценки' : 'Price after review';
   }
-  if (order.currency === 'USDT') return (order.amount_minor / 100).toFixed(2).replace(/\.00$/,'') + ' USDT';
+  if (order.currency === 'EUR') return (order.amount_minor / 100).toFixed(2).replace(/\.00$/,'') + '€';
   if (order.currency === 'RUB') return (order.amount_minor / 100).toFixed(0) + '₽';
   if (order.currency === 'USD') return '$' + (order.amount_minor / 100).toFixed(2).replace(/\.00$/,'');
   return order.amount_minor + ' ' + order.currency;
@@ -1151,9 +1147,9 @@ async function adminOrderDetail(order, session){
       <label>Сложность и цена
         <select id="admin-order-tier">
           <option value="unassigned" ${order.tier==='unassigned'?'selected':''}>Не определена</option>
-          <option value="easy" ${order.tier==='easy'?'selected':''}>Лёгкий — 1 USDT</option>
-          <option value="medium" ${order.tier==='medium'?'selected':''}>Средний — 2 USDT</option>
-          <option value="difficult" ${order.tier==='difficult'?'selected':''}>Сложный — 3 USDT</option>
+          <option value="easy" ${order.tier==='easy'?'selected':''}>Лёгкий — 1€</option>
+          <option value="medium" ${order.tier==='medium'?'selected':''}>Средний — 2€</option>
+          <option value="difficult" ${order.tier==='difficult'?'selected':''}>Сложный — 3€</option>
         </select>
       </label>
       <button class="secondary-button" id="admin-save-tier" type="button">Назначить цену</button>
@@ -1196,7 +1192,7 @@ async function adminOrderDetail(order, session){
     const prices = {unassigned:0,easy:100,medium:200,difficult:300};
     const update = {
       tier,
-      currency:'USDT',
+      currency:'EUR',
       amount_minor:prices[tier] ?? 0
     };
     if (tier !== 'unassigned' && order.status === 'new') update.status = 'awaiting_payment';
