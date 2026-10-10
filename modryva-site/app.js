@@ -822,6 +822,32 @@ async function renderOrderDetail(order, session){
       <span>${escapeHtml(formatDate(order.created_at))}</span>
     </div>
     ${filesHtml ? '<div class="files-box"><strong>Готовые файлы</strong><div class="files-row">'+filesHtml+'</div></div>' : ''}
+    ${(order.status === 'awaiting_payment' && order.payment_status !== 'paid')
+      ? `<div class="donationalerts-payment-box">
+          <div class="payment-box-title">${getLang()==='ru'?'Оплата через DonationAlerts':'Pay with DonationAlerts'}</div>
+          <div class="payment-box-amount">${escapeHtml(amountLabel(order))}</div>
+          <p>${getLang()==='ru'
+            ? 'Перед оплатой скопируй код заказа и вставь его в поле сообщения DonationAlerts. Сумма и валюта должны совпадать точно.'
+            : 'Before paying, copy the order code and paste it into the DonationAlerts message field. The amount and currency must match exactly.'}</p>
+          <div class="payment-code-row">
+            <code id="payment-order-code">${escapeHtml(order.order_number)}</code>
+            <button class="secondary-button compact-payment-button" id="copy-payment-code" type="button">${getLang()==='ru'?'Скопировать код':'Copy code'}</button>
+          </div>
+          <div class="payment-actions">
+            <a class="primary-button" id="open-donationalerts" href="https://www.donationalerts.com/r/fixpot47" target="_blank" rel="noopener noreferrer">
+              ${getLang()==='ru'?'Оплатить '+escapeHtml(amountLabel(order)):'Pay '+escapeHtml(amountLabel(order))}
+            </a>
+          </div>
+          <div class="payment-verify">
+            <label for="donation-order-code">${getLang()==='ru'?'После оплаты введи код заказа':'After payment, enter the order code'}</label>
+            <div class="payment-verify-row">
+              <input id="donation-order-code" autocomplete="off" placeholder="${escapeHtml(order.order_number)}" />
+              <button class="secondary-button" id="verify-donation-payment" type="button">${getLang()==='ru'?'Проверить оплату':'Check payment'}</button>
+            </div>
+            <div class="payment-check-status" id="payment-check-status"></div>
+          </div>
+        </div>`
+      : ''}
     ${(['new','awaiting_payment'].includes(order.status) && order.payment_status !== 'paid')
       ? '<div class="order-actions"><button class="danger-button" id="cancel-order-button" type="button">'+(getLang()==='ru'?'Отменить заказ':'Cancel order')+'</button></div>'
       : ''}
@@ -841,6 +867,68 @@ async function renderOrderDetail(order, session){
   detail.querySelectorAll('.attachment-download').forEach(btn => btn.addEventListener('click', () => {
     downloadConversationFile(btn.dataset.path, btn.dataset.name);
   }));
+
+  detail.querySelector('#copy-payment-code')?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(order.order_number);
+      showToast(getLang()==='ru'?'Код заказа скопирован':'Order code copied');
+    } catch {
+      const input = detail.querySelector('#donation-order-code');
+      if (input){ input.value = order.order_number; input.select(); }
+    }
+  });
+
+  detail.querySelector('#open-donationalerts')?.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(order.order_number); } catch {}
+    const status = detail.querySelector('#payment-check-status');
+    if (status) status.textContent = getLang()==='ru'
+      ? 'Код заказа скопирован. Вставь его в поле сообщения DonationAlerts.'
+      : 'Order code copied. Paste it into the DonationAlerts message field.';
+  });
+
+  detail.querySelector('#verify-donation-payment')?.addEventListener('click', async () => {
+    const input = detail.querySelector('#donation-order-code');
+    const button = detail.querySelector('#verify-donation-payment');
+    const status = detail.querySelector('#payment-check-status');
+    const code = String(input?.value || '').trim();
+
+    if (!code){
+      if (status) status.textContent = getLang()==='ru'?'Введи код заказа.':'Enter the order code.';
+      return;
+    }
+
+    button.disabled = true;
+    if (status) status.textContent = getLang()==='ru'?'Проверяем DonationAlerts…':'Checking DonationAlerts…';
+
+    const { data, error } = await db.functions.invoke('donationalerts-check-payment', {
+      body: { order_id: order.id, order_code: code }
+    });
+
+    if (error || !data?.paid){
+      button.disabled = false;
+      const err = data?.error || error?.message || 'DONATION_NOT_FOUND';
+      const messages = {
+        DONATIONALERTS_NOT_CONNECTED: getLang()==='ru'
+          ? 'DonationAlerts ещё не подключён к MODRYVA.'
+          : 'DonationAlerts is not connected to MODRYVA yet.',
+        DONATIONALERTS_AUTH_FAILED: getLang()==='ru'
+          ? 'Подключение DonationAlerts нужно обновить.'
+          : 'The DonationAlerts connection needs to be renewed.',
+        ORDER_CODE_MISMATCH: getLang()==='ru'
+          ? 'Код заказа не совпадает.'
+          : 'The order code does not match.',
+        DONATION_NOT_FOUND: getLang()==='ru'
+          ? 'Платёж пока не найден. Проверь сумму, валюту EUR и сообщение с кодом заказа.'
+          : 'Payment not found yet. Check the amount, EUR currency and the message containing your order code.'
+      };
+      if (status) status.textContent = messages[err] || (getLang()==='ru'?'Не удалось подтвердить оплату.':'Could not confirm payment.');
+      return;
+    }
+
+    if (status) status.textContent = getLang()==='ru'?'Оплата подтверждена ✅':'Payment confirmed ✅';
+    showToast(getLang()==='ru'?'Оплата подтверждена ✅':'Payment confirmed ✅');
+    await loadInbox(order.id);
+  });
 
   detail.querySelector('#cancel-order-button')?.addEventListener('click', async () => {
     const ok = confirm(getLang()==='ru'
