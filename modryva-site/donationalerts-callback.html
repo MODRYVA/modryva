@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>MODRYVA — DonationAlerts</title>
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css?v=21" />
+</head>
+<body>
+  <main class="profile-page">
+    <section class="login-card account-card" id="da-callback-card">
+      <div class="account-brand">
+        <img src="assets/logo.png" alt="MODRYVA logo" width="48" height="48" />
+        <span>MODRYVA</span>
+      </div>
+      <h1>DonationAlerts</h1>
+      <p class="account-lead" id="da-callback-status">Подключаем DonationAlerts к MODRYVA…</p>
+      <a class="primary-button" id="da-callback-back" href="admin.html" hidden>Вернуться в панель MODRYVA</a>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=6"></script>
+  <script>
+  (async () => {
+    const status = document.querySelector('#da-callback-status');
+    const back = document.querySelector('#da-callback-back');
+    const params = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const accessToken = params.get('access_token');
+    const expiresIn = Number(params.get('expires_in') || 0);
+    const oauthError = params.get('error') || params.get('error_description');
+
+    history.replaceState(null, '', location.pathname + location.search);
+
+    if (oauthError) {
+      status.textContent = 'DonationAlerts не подключён: ' + oauthError;
+      back.hidden = false;
+      return;
+    }
+    if (!accessToken) {
+      status.textContent = 'DonationAlerts не вернул токен доступа. Попробуй подключение ещё раз.';
+      back.hidden = false;
+      return;
+    }
+
+    const cfg = window.MODRYVA_SUPABASE;
+    const db = window.supabase.createClient(cfg.url, cfg.key);
+    const { data: sessionData } = await db.auth.getSession();
+    if (!sessionData.session) {
+      status.textContent = 'Сначала войди в MODRYVA под админ-аккаунтом, затем повтори подключение DonationAlerts.';
+      back.hidden = false;
+      return;
+    }
+
+    const { data, error } = await db.functions.invoke('donationalerts-store-token', {
+      body: { access_token: accessToken, expires_in: expiresIn }
+    });
+
+    if (error || !data?.connected) {
+      status.textContent = 'Не удалось сохранить подключение DonationAlerts. Вернись в админ-панель и попробуй ещё раз.';
+      back.hidden = false;
+      return;
+    }
+
+    status.textContent = 'DonationAlerts успешно подключён к MODRYVA ✅';
+    back.hidden = false;
+  })();
+  </script>
+</body>
+</html>
