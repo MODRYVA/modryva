@@ -1409,3 +1409,88 @@ a { color: inherit; text-decoration: none; }
   font-size: 12px;
   font-weight: 750;
 }
+
+.donationalerts-payment-box {
+  margin: 10px 0 16px;
+  padding: 18px;
+  border: 1px solid #d8e2f0;
+  border-radius: 17px;
+  background: #f8fbff;
+}
+.payment-box-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: #4f5d71;
+}
+.payment-box-amount {
+  margin-top: 3px;
+  font-size: 30px;
+  font-weight: 950;
+  letter-spacing: -.03em;
+}
+.donationalerts-payment-box p {
+  margin: 9px 0 14px;
+  color: #687180;
+  line-height: 1.5;
+  font-size: 13px;
+}
+.payment-code-row,
+.payment-verify-row,
+.payment-actions {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.payment-code-row code {
+  flex: 1 1 180px;
+  padding: 11px 13px;
+  border: 1px dashed #b9c8dc;
+  border-radius: 11px;
+  background: #fff;
+  color: #23344d;
+  font-weight: 900;
+  letter-spacing: .05em;
+}
+.compact-payment-button {
+  padding: 10px 12px;
+}
+.payment-actions {
+  margin: 12px 0 16px;
+}
+.payment-actions .primary-button {
+  text-decoration: none;
+}
+.payment-verify {
+  padding-top: 14px;
+  border-top: 1px solid #e3e9f1;
+}
+.payment-verify label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 850;
+  color: #586274;
+}
+.payment-verify-row input {
+  flex: 1 1 210px;
+  min-width: 0;
+  border: 1.5px solid #d6deea;
+  border-radius: 11px;
+  padding: 11px 12px;
+  background: #fff;
+  font: inherit;
+}
+.payment-check-status {
+  min-height: 19px;
+  margin-top: 9px;
+  color: #667080;
+  font-size: 12px;
+  font-weight: 750;
+}
+@media (max-width: 560px) {
+  .payment-code-row > *,
+  .payment-verify-row > * {
+    width: 100%;
+  }
+}
